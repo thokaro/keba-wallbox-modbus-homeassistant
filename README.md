@@ -156,7 +156,7 @@ The integration validates the wallbox during setup by reading the serial number 
 
 ---
 
-## 💡 Community Notes
+## 💡 Notes
 
 The following points are **community findings** and not part of the official KEBA Modbus documentation:
 
@@ -164,7 +164,6 @@ The following points are **community findings** and not part of the official KEB
 - A successful phase switch may briefly interrupt charging before the relay state changes and charging resumes.
 - If a new `5052` command is sent during that cooldown, it may simply be ignored instead of being queued for later execution.
 - Re-sending the desired phase-switch command periodically can therefore be more reliable than sending it only once.
-- Community reports also suggest that autonomous phase switching on the wallbox itself depends on `PV optimized charging` together with a compatible external TCP meter.
 
 ---
 
