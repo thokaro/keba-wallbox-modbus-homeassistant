@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "KEBA Wallbox Modbus",
+        "description": "Configure the Modbus TCP connection to the wallbox. Optionally set a separate Display UDP host for UDP display messages; this is mainly relevant for P30 wallboxes with display.",
+        "data": {
+          "host": "Host",
+          "udp_host": "Display UDP host",
+          "port": "Port",
+          "timeout": "Timeout (seconds)",
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the wallbox.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This wallbox is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "KEBA Wallbox Modbus",
+        "description": "Adjust connection, display UDP and polling settings.",
+        "data": {
+          "host": "Host",
+          "udp_host": "Display UDP host",
+          "port": "Port",
+          "timeout": "Timeout (seconds)",
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the wallbox.",
+      "different_device": "The configured host belongs to a different wallbox.",
+      "unknown": "Unexpected error."
+    }
+  }
+}

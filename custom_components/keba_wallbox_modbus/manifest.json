@@ -1,0 +1,13 @@
+{
+  "domain": "keba_wallbox_modbus",
+  "name": "KEBA Wallbox Modbus",
+  "codeowners": ["@thokaro"],
+  "config_flow": true,
+  "documentation": "https://github.com/thokaro/keba-wallbox-modbus-homeassistant",
+  "issue_tracker": "https://github.com/thokaro/keba-wallbox-modbus-homeassistant/issues",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "loggers": ["pymodbus"],
+  "requirements": ["pymodbus>=3.8.6,<4.0.0"],
+  "version": "2026.4.0"
+}
