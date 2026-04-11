@@ -92,6 +92,32 @@ The integration validates the wallbox during setup by reading the serial number 
 
 ---
 
+## 🖥️ Notify Service
+
+If display support is detected, Home Assistant also creates a `notify` service for the wallbox display. This is mainly relevant for `P30` wallboxes with display.
+
+- The service name is derived from the wallbox or device name, for example `notify.keba_wallbox`.
+- `message` contains the text shown on the display.
+- `data.min_time` defines the minimum display duration in seconds.
+- `data.max_time` defines the maximum display duration in seconds.
+- `min_time` defaults to `2` seconds and `max_time` defaults to `10` seconds.
+- Both values must be numeric and are sent as rounded whole seconds.
+
+Example:
+
+```yaml
+action: notify.send_message
+target:
+  entity_id: notify.keba_wallbox
+data:
+  message: "PV charging active"
+  data:
+    min_time: 5
+    max_time: 20
+```
+
+---
+
 ## 📊 Exposed Entities
 
 ### Sensors
@@ -153,10 +179,11 @@ The integration validates the wallbox during setup by reading the serial number 
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Phase switching and failsafe-related values are treated as optional. If the wallbox does not expose them, related entities may stay unavailable.
 - `Charging enabled` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
+- The display `notify` service is only loaded when display support is detected.
 
 ---
 
-## 💡 Notes
+## 💡 Community Notes
 
 The following points are **community findings** and not part of the official KEBA Modbus documentation:
 
