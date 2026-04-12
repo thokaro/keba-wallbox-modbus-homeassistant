@@ -112,11 +112,6 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             model_key=self.model_key,
         )
 
-    @property
-    def display_supported(self) -> bool:
-        """Return whether the wallbox supports the UDP display command."""
-        return self._display_supported is True
-
     async def async_shutdown(self) -> None:
         """Close resources held by the coordinator."""
         await self.hub.async_close()

@@ -7,7 +7,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .entity import KebaEntity, async_add_description_entities, get_entry_coordinator
+from .const import DOMAIN
+from .entity import KebaEntity, async_add_description_entities
 from .write_descriptions import BUTTON_DESCRIPTIONS, KebaButtonDescription
 from .coordinator import KebaDataUpdateCoordinator
 
@@ -18,7 +19,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KEBA wallbox buttons."""
-    coordinator = get_entry_coordinator(hass.data, entry.entry_id)
+    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_description_entities(
         async_add_entities,
         coordinator,

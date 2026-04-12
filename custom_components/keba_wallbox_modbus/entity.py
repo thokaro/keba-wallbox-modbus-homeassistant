@@ -38,16 +38,6 @@ class KebaEntity(CoordinatorEntity[KebaDataUpdateCoordinator]):
             serial_number=self.coordinator.device_serial,
             sw_version=self.coordinator.firmware_version,
         )
-
-
-def get_entry_coordinator(
-    hass_data: dict,
-    entry_id: str,
-) -> KebaDataUpdateCoordinator:
-    """Return the coordinator for a config entry."""
-    return hass_data[DOMAIN][entry_id]
-
-
 def async_add_description_entities(
     async_add_entities: AddEntitiesCallback,
     coordinator: KebaDataUpdateCoordinator,

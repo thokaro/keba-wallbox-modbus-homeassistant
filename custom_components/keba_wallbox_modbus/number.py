@@ -15,8 +15,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.exceptions import HomeAssistantError
 
+from .const import DOMAIN
 from .coordinator import KebaDataUpdateCoordinator
-from .entity import KebaEntity, async_add_description_entities, get_entry_coordinator
+from .entity import KebaEntity, async_add_description_entities
 from .write_descriptions import KebaNumberDescription, NUMBER_DESCRIPTIONS
 
 
@@ -32,7 +33,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KEBA wallbox numbers."""
-    coordinator = get_entry_coordinator(hass.data, entry.entry_id)
+    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_description_entities(
         async_add_entities,
         coordinator,
