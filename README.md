@@ -154,7 +154,7 @@ data:
 
 ### Switches
 
-- `Charging enabled`
+- `Charger enable`
 
 ### Selects
 
@@ -187,7 +187,7 @@ data:
 - When the wallbox is disabled, KEBA may report `0` via read register `1100` even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` and `Charging power` value instead of showing `0`.
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
-- `Charging enabled` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
+- `Charger enable` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
 - The display `notify` service is only loaded when display support is detected.
 
 ---

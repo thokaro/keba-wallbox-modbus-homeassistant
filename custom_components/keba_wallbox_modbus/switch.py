@@ -23,17 +23,17 @@ async def async_setup_entry(
 ) -> None:
     """Set up KEBA wallbox switches."""
     coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([KebaChargingEnabledSwitch(coordinator)])
+    async_add_entities([KebaChargerEnableSwitch(coordinator)])
 
 
-class KebaChargingEnabledSwitch(RestoreEntity, KebaEntity, SwitchEntity):
+class KebaChargerEnableSwitch(RestoreEntity, KebaEntity, SwitchEntity):
     """Optimistic switch for enabling or disabling the wallbox."""
 
-    _attr_name = "Charging enabled"
+    _attr_name = "Charger enable"
     _attr_icon = "mdi:ev-plug-type2"
 
     def __init__(self, coordinator: KebaDataUpdateCoordinator) -> None:
-        KebaEntity.__init__(self, coordinator, "charging_enabled")
+        KebaEntity.__init__(self, coordinator, "charger_enable")
         self._is_on: Optional[bool] = None
 
     async def async_added_to_hass(self) -> None:

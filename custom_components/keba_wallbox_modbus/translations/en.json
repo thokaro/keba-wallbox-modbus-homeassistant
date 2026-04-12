@@ -143,8 +143,8 @@
       }
     },
     "switch": {
-      "charging_enabled": {
-        "name": "Charging enabled"
+      "charger_enable": {
+        "name": "Charger enable"
       }
     }
   }

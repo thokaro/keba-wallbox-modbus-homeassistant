@@ -143,8 +143,8 @@
       }
     },
     "switch": {
-      "charging_enabled": {
-        "name": "Laden aktiviert"
+      "charger_enable": {
+        "name": "Ladefreigabe"
       }
     }
   }
