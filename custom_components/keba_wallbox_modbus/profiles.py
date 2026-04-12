@@ -13,7 +13,6 @@ from .base import (
     MODEL_NAME_P40,
 )
 from .registers import (
-    COMMON_OPTIONAL_RUNTIME_KEYS,
     P30_RUNTIME_REGISTER_MAP,
     P30_STATIC_REGISTER_MAP,
     P40_RUNTIME_REGISTER_MAP,
@@ -52,11 +51,11 @@ P30_PROFILE = KebaProfile(
     model_name=MODEL_NAME_P30,
     static_register_map=P30_STATIC_REGISTER_MAP,
     runtime_register_map=P30_RUNTIME_REGISTER_MAP,
-    optional_runtime_keys=COMMON_OPTIONAL_RUNTIME_KEYS,
+    optional_runtime_keys=frozenset(P30_RUNTIME_REGISTER_MAP),
     phase_switch_source_map=PHASE_SWITCH_SOURCE_MAP_P30,
     supports_failsafe_persist=True,
     supports_fast_charging=False,
-    charging_current_min_amps=6,
+    charging_current_min_amps=0,
 )
 
 P40_PROFILE = KebaProfile(
@@ -64,7 +63,7 @@ P40_PROFILE = KebaProfile(
     model_name=MODEL_NAME_P40,
     static_register_map=P40_STATIC_REGISTER_MAP,
     runtime_register_map=P40_RUNTIME_REGISTER_MAP,
-    optional_runtime_keys=COMMON_OPTIONAL_RUNTIME_KEYS,
+    optional_runtime_keys=frozenset(P40_RUNTIME_REGISTER_MAP),
     phase_switch_source_map=PHASE_SWITCH_SOURCE_MAP_P40,
     supports_failsafe_persist=False,
     supports_fast_charging=True,

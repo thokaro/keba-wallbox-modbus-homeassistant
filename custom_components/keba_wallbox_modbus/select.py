@@ -2,66 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from collections.abc import Mapping
 from typing import Optional
 
-from homeassistant.components.select import SelectEntity, SelectEntityDescription
+from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    DOMAIN,
-    KebaProfile,
-    KEY_PHASE_SWITCH_SOURCE,
-    KEY_PHASE_SWITCH_STATE,
-    PHASE_SWITCH_STATE_MAP,
-    PHASE_SWITCH_STATE_WRITE_MAP,
-)
 from .coordinator import KebaDataUpdateCoordinator
-from .entity import KebaEntity
-
-
-@dataclass(frozen=True)
-class KebaSelectDescription(SelectEntityDescription):
-    """Describe a KEBA select entity."""
-
-    register: int = 0
-    read_key: str = ""
-    read_map: Mapping[int, str] = field(default_factory=dict)
-    write_map: Mapping[str, int] = field(default_factory=dict)
-    options_fn: Optional[Callable[[KebaProfile], list[str]]] = None
-    read_map_fn: Optional[Callable[[KebaProfile], Mapping[int, str]]] = None
-    write_map_fn: Optional[Callable[[KebaProfile], Mapping[str, int]]] = None
-
-
-SELECT_DESCRIPTIONS: tuple[KebaSelectDescription, ...] = (
-    KebaSelectDescription(
-        key="phase_switch_source",
-        name="Phase switch source",
-        icon="mdi:swap-horizontal-circle-outline",
-        entity_category=EntityCategory.CONFIG,
-        options=[],
-        register=5050,
-        read_key=KEY_PHASE_SWITCH_SOURCE,
-        options_fn=lambda profile: list(profile.phase_switch_source_write_map),
-        read_map_fn=lambda profile: profile.phase_switch_source_map,
-        write_map_fn=lambda profile: profile.phase_switch_source_write_map,
-    ),
-    KebaSelectDescription(
-        key="phase_switch_state",
-        name="Phase switch state",
-        icon="mdi:power-plug-battery",
-        entity_category=EntityCategory.CONFIG,
-        options=list(PHASE_SWITCH_STATE_WRITE_MAP),
-        register=5052,
-        read_key=KEY_PHASE_SWITCH_STATE,
-        read_map=PHASE_SWITCH_STATE_MAP,
-        write_map=PHASE_SWITCH_STATE_WRITE_MAP,
-    ),
-)
+from .entity import KebaEntity, async_add_description_entities, get_entry_coordinator
+from .write_descriptions import KebaSelectDescription, SELECT_DESCRIPTIONS
 
 
 async def async_setup_entry(
@@ -70,10 +21,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KEBA wallbox selects."""
-    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        KebaSelectEntity(coordinator, description)
-        for description in SELECT_DESCRIPTIONS
+    coordinator = get_entry_coordinator(hass.data, entry.entry_id)
+    async_add_description_entities(
+        async_add_entities,
+        coordinator,
+        SELECT_DESCRIPTIONS,
+        KebaSelectEntity,
     )
 
 
@@ -121,8 +74,7 @@ class KebaSelectEntity(KebaEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Write a new select option."""
-        await self.coordinator.async_write_register(
+        await self.coordinator.async_write_register_and_refresh(
             self.entity_description.register,
             self._write_map()[option],
         )
-        await self.coordinator.async_request_refresh()

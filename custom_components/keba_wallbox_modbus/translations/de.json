@@ -7,6 +7,7 @@
         "data": {
           "host": "Host",
           "udp_host": "Display-UDP-Host",
+          "unit_id": "Modbus-Unit-ID",
           "port": "Port",
           "timeout": "Timeout (Sekunden)",
           "scan_interval": "Aktualisierungsintervall (Sekunden)"
@@ -29,6 +30,7 @@
         "data": {
           "host": "Host",
           "udp_host": "Display-UDP-Host",
+          "unit_id": "Modbus-Unit-ID",
           "port": "Port",
           "timeout": "Timeout (Sekunden)",
           "scan_interval": "Aktualisierungsintervall (Sekunden)"
@@ -39,6 +41,111 @@
       "cannot_connect": "Verbindung zur Wallbox fehlgeschlagen.",
       "different_device": "Der konfigurierte Host gehoert zu einer anderen Wallbox.",
       "unknown": "Unerwarteter Fehler."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "charging_state": {
+        "name": "Ladestatus"
+      },
+      "cable_state": {
+        "name": "Kabelstatus"
+      },
+      "error_code": {
+        "name": "Fehlercode"
+      },
+      "current_l1": {
+        "name": "Strom Phase 1"
+      },
+      "current_l2": {
+        "name": "Strom Phase 2"
+      },
+      "current_l3": {
+        "name": "Strom Phase 3"
+      },
+      "active_power": {
+        "name": "Wirkleistung"
+      },
+      "total_energy": {
+        "name": "Gesamtenergie"
+      },
+      "session_energy": {
+        "name": "Sitzungsenergie"
+      },
+      "voltage_l1": {
+        "name": "Spannung Phase 1"
+      },
+      "voltage_l2": {
+        "name": "Spannung Phase 2"
+      },
+      "voltage_l3": {
+        "name": "Spannung Phase 3"
+      },
+      "power_factor": {
+        "name": "Leistungsfaktor"
+      },
+      "max_charging_current": {
+        "name": "Ladestromlimit"
+      },
+      "max_supported_current": {
+        "name": "Maximal unterstuetzter Strom"
+      },
+      "fast_charging_state": {
+        "name": "Schnellladestatus"
+      },
+      "serial_number": {
+        "name": "Seriennummer"
+      },
+      "firmware_version": {
+        "name": "Firmware-Version"
+      },
+      "hardware_revision_device": {
+        "name": "Hardware-Revision Geraet"
+      },
+      "hardware_revision_ms10": {
+        "name": "Hardware-Revision MS10"
+      }
+    },
+    "number": {
+      "charging_current_limit": {
+        "name": "Ladestromlimit"
+      },
+      "charging_power_limit": {
+        "name": "Ladeleistung"
+      },
+      "session_energy_limit": {
+        "name": "Sitzungsenergielimit"
+      },
+      "failsafe_current": {
+        "name": "Failsafe-Strom"
+      },
+      "failsafe_timeout": {
+        "name": "Failsafe-Timeout"
+      }
+    },
+    "select": {
+      "phase_switch_source": {
+        "name": "Quelle Phasenumschaltung"
+      },
+      "phase_switch_state": {
+        "name": "Zustand Phasenumschaltung"
+      }
+    },
+    "button": {
+      "unlock_plug": {
+        "name": "Stecker entriegeln"
+      },
+      "persist_failsafe_settings": {
+        "name": "Failsafe-Einstellungen speichern"
+      },
+      "activate_fast_charging": {
+        "name": "Schnellladen aktivieren"
+      }
+    },
+    "switch": {
+      "charging_enabled": {
+        "name": "Laden aktiviert"
+      }
     }
   }
 }

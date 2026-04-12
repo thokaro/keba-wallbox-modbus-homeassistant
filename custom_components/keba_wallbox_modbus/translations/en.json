@@ -7,6 +7,7 @@
         "data": {
           "host": "Host",
           "udp_host": "Display UDP host",
+          "unit_id": "Modbus unit ID",
           "port": "Port",
           "timeout": "Timeout (seconds)",
           "scan_interval": "Update interval (seconds)"
@@ -29,6 +30,7 @@
         "data": {
           "host": "Host",
           "udp_host": "Display UDP host",
+          "unit_id": "Modbus unit ID",
           "port": "Port",
           "timeout": "Timeout (seconds)",
           "scan_interval": "Update interval (seconds)"
@@ -39,6 +41,111 @@
       "cannot_connect": "Failed to connect to the wallbox.",
       "different_device": "The configured host belongs to a different wallbox.",
       "unknown": "Unexpected error."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "charging_state": {
+        "name": "Charging state"
+      },
+      "cable_state": {
+        "name": "Cable state"
+      },
+      "error_code": {
+        "name": "Error code"
+      },
+      "current_l1": {
+        "name": "Phase 1 current"
+      },
+      "current_l2": {
+        "name": "Phase 2 current"
+      },
+      "current_l3": {
+        "name": "Phase 3 current"
+      },
+      "active_power": {
+        "name": "Active power"
+      },
+      "total_energy": {
+        "name": "Total energy"
+      },
+      "session_energy": {
+        "name": "Session energy"
+      },
+      "voltage_l1": {
+        "name": "Phase 1 voltage"
+      },
+      "voltage_l2": {
+        "name": "Phase 2 voltage"
+      },
+      "voltage_l3": {
+        "name": "Phase 3 voltage"
+      },
+      "power_factor": {
+        "name": "Power factor"
+      },
+      "max_charging_current": {
+        "name": "Charging current limit"
+      },
+      "max_supported_current": {
+        "name": "Maximum supported current"
+      },
+      "fast_charging_state": {
+        "name": "Fast charging state"
+      },
+      "serial_number": {
+        "name": "Serial number"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "hardware_revision_device": {
+        "name": "Hardware revision device"
+      },
+      "hardware_revision_ms10": {
+        "name": "Hardware revision MS10"
+      }
+    },
+    "number": {
+      "charging_current_limit": {
+        "name": "Charging current limit"
+      },
+      "charging_power_limit": {
+        "name": "Charging power"
+      },
+      "session_energy_limit": {
+        "name": "Session energy limit"
+      },
+      "failsafe_current": {
+        "name": "Failsafe current"
+      },
+      "failsafe_timeout": {
+        "name": "Failsafe timeout"
+      }
+    },
+    "select": {
+      "phase_switch_source": {
+        "name": "Phase switch source"
+      },
+      "phase_switch_state": {
+        "name": "Phase switch state"
+      }
+    },
+    "button": {
+      "unlock_plug": {
+        "name": "Unlock plug"
+      },
+      "persist_failsafe_settings": {
+        "name": "Persist failsafe settings"
+      },
+      "activate_fast_charging": {
+        "name": "Activate fast charging"
+      }
+    },
+    "switch": {
+      "charging_enabled": {
+        "name": "Charging enabled"
+      }
     }
   }
 }

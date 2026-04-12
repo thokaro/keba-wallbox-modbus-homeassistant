@@ -51,14 +51,12 @@ class KebaChargingEnabledSwitch(RestoreEntity, KebaEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Enable the wallbox."""
-        await self.coordinator.async_write_register(5014, 1)
+        await self.coordinator.async_write_register_and_refresh(5014, 1)
         self._is_on = True
         self.async_write_ha_state()
-        await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs) -> None:
         """Disable the wallbox."""
-        await self.coordinator.async_write_register(5014, 0)
+        await self.coordinator.async_write_register_and_refresh(5014, 0)
         self._is_on = False
         self.async_write_ha_state()
-        await self.coordinator.async_request_refresh()

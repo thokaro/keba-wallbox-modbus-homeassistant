@@ -15,9 +15,11 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
+    CONF_UNIT_ID,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIMEOUT,
+    DEFAULT_UNIT_ID,
     DOMAIN,
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
@@ -28,6 +30,18 @@ from .const import (
 from .modbus import KebaModbusError, async_probe_device
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_user_input(user_input: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize selector output before probing or storing it."""
+    return {
+        CONF_HOST: str(user_input[CONF_HOST]),
+        CONF_PORT: int(user_input[CONF_PORT]),
+        CONF_UDP_HOST: str(user_input.get(CONF_UDP_HOST, user_input[CONF_HOST])),
+        CONF_UNIT_ID: int(user_input[CONF_UNIT_ID]),
+        CONF_TIMEOUT: int(user_input[CONF_TIMEOUT]),
+        CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+    }
 
 
 def _build_schema(defaults: Optional[Dict[str, Any]] = None) -> vol.Schema:
@@ -51,6 +65,16 @@ def _build_schema(defaults: Optional[Dict[str, Any]] = None) -> vol.Schema:
                 CONF_UDP_HOST,
                 default=values.get(CONF_UDP_HOST, values.get(CONF_HOST, "")),
             ): str,
+            vol.Required(CONF_UNIT_ID, default=values.get(CONF_UNIT_ID, DEFAULT_UNIT_ID)): (
+                selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=255,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                )
+            ),
             vol.Required(CONF_TIMEOUT, default=values.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)): (
                 selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -87,6 +111,7 @@ async def _async_probe_user_input(
             str(user_input[CONF_HOST]),
             int(user_input[CONF_PORT]),
             int(user_input[CONF_TIMEOUT]),
+            int(user_input[CONF_UNIT_ID]),
         )
     except KebaModbusError as err:
         LOGGER.warning(
@@ -126,8 +151,9 @@ class KebaConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            normalized_input = _normalize_user_input(user_input)
             probe, errors = await _async_probe_user_input(
-                user_input,
+                normalized_input,
                 context="discovery",
             )
             if probe is not None:
@@ -139,7 +165,7 @@ class KebaConfigFlow(ConfigFlow, domain=DOMAIN):
                     self._abort_if_unique_id_configured()
                     return self.async_create_entry(
                         title=f"{model_name} {serial}",
-                        data=user_input,
+                        data=normalized_input,
                     )
 
         return self.async_show_form(
@@ -161,8 +187,9 @@ class KebaOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            normalized_input = _normalize_user_input(user_input)
             probe, errors = await _async_probe_user_input(
-                user_input,
+                normalized_input,
                 context="option validation",
             )
             if probe is not None:
@@ -172,7 +199,7 @@ class KebaOptionsFlow(OptionsFlow):
                 elif self._entry.unique_id is not None and serial != self._entry.unique_id:
                     errors["base"] = "different_device"
                 else:
-                    return self.async_create_entry(title="", data=user_input)
+                    return self.async_create_entry(title="", data=normalized_input)
 
         return self.async_show_form(
             step_id="init",

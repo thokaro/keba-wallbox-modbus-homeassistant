@@ -13,7 +13,6 @@ from .const import (
     DISCOVERY_REGISTER_MAP,
     MIN_READ_INTERVAL,
     MIN_WRITE_INTERVAL,
-    MODBUS_UNIT_ID,
 )
 
 
@@ -24,10 +23,11 @@ class KebaModbusError(Exception):
 class KebaModbusHub:
     """Wrapper around pymodbus for KEBA specific access patterns."""
 
-    def __init__(self, host: str, port: int, timeout: int) -> None:
+    def __init__(self, host: str, port: int, timeout: int, unit_id: int) -> None:
         self._host = host
         self._port = port
         self._timeout = timeout
+        self._unit_id = unit_id
         self._client: Optional[AsyncModbusTcpClient] = None
         self._lock = asyncio.Lock()
         self._last_write_at = 0.0
@@ -138,11 +138,11 @@ class KebaModbusHub:
     async def _async_call_with_unit_id(self, method: Any, **kwargs: Any) -> Any:
         """Call a pymodbus method using the supported unit-id keyword."""
         if self._unit_kwarg is not None:
-            return await method(**kwargs, **{self._unit_kwarg: MODBUS_UNIT_ID})
+            return await method(**kwargs, **{self._unit_kwarg: self._unit_id})
 
         for keyword in ("slave", "device_id"):
             try:
-                response = await method(**kwargs, **{keyword: MODBUS_UNIT_ID})
+                response = await method(**kwargs, **{keyword: self._unit_id})
             except TypeError as err:
                 if "unexpected keyword" not in str(err):
                     raise
@@ -175,9 +175,14 @@ class KebaModbusHub:
             await asyncio.sleep(remaining)
 
 
-async def async_probe_device(host: str, port: int, timeout: int) -> Dict[str, Optional[int]]:
+async def async_probe_device(
+    host: str,
+    port: int,
+    timeout: int,
+    unit_id: int,
+) -> Dict[str, Optional[int]]:
     """Probe the wallbox and return its static identifiers."""
-    hub = KebaModbusHub(host, port, timeout)
+    hub = KebaModbusHub(host, port, timeout, unit_id)
     try:
         return await hub.async_read_named_registers(DISCOVERY_REGISTER_MAP)
     finally:

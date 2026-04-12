@@ -83,7 +83,8 @@ After restarting Home Assistant:
 4. Enter the required connection details:
 
 - `Host`: IP address or DNS name of the wallbox
-- `Display UDP host`: optional separate IP address or DNS name for UDP display commands; mainly relevant for `P30` wallboxes with display or when Modbus is routed differently
+- `Display UDP host`: optional separate IP address or DNS name for UDP display commands and display detection; mainly relevant for `P30` wallboxes with display or when Modbus is routed differently
+- `Modbus unit ID`: default `255`; direct KEBA access usually uses `255`, but a Modbus proxy may require a different value
 - `Port`: default `502`
 - `Timeout`: Modbus TCP timeout in seconds
 - `Update interval`: polling interval in seconds, default `30`, minimum `5`
@@ -146,7 +147,7 @@ data:
 ### Numbers
 
 - `Charging current limit`
-- `Charging power limit`
+- `Charging power`
 - `Session energy limit`
 - `Failsafe current`
 - `Failsafe timeout`
@@ -175,9 +176,17 @@ data:
 - Decoded product details from register `1016` are exposed as attributes on the diagnostic sensor `Serial number`.
 - `Phase switch source` uses model-specific option sets. `UDP` is only offered on `P30`.
 - `Persist failsafe settings` exists only on `P30`. `Activate fast charging` exists only on `P40`.
-- `Charging power limit` is a convenience slider that maps to the same current register `5004` using voltage registers `1040`, `1042` and `1044`. If phase or voltage data is missing, nominal device assumptions are used as fallback.
+- `Unlock plug` is only exposed for `socket` variants. On `P30`, KEBA documents that unlocking is only possible in `suspended` state and the charging process must be stopped beforehand, for example via register `5014`.
+- `Failsafe current` accepts `0` A or `6` to `32` A. `0` A suspends charging when failsafe mode becomes active.
+- `Failsafe timeout` accepts `0` s or `5` to `600` s. `0` deactivates failsafe mode.
+- `Persist failsafe settings` exists only on `P30` and writes the current failsafe configuration to the wallbox EEPROM.
+- `Failsafe` activates only after a timeout value greater than `0` is written. Every received Modbus command resets the internal timeout timer.
+- On `P30`, disabling a previously persisted failsafe requires writing timeout `0` and then persisting again with `5020 = 1`.
+- `Charging power` is a convenience slider that maps to the same current register `5004` using voltage registers `1040`, `1042` and `1044`. If phase or voltage data is missing, nominal device assumptions are used as fallback.
+- The integration allows `0` as a charging-current target on both `P30` and `P40`, so charging can be suspended directly via the writable current and power entities.
+- When the wallbox is disabled, KEBA may report `0` via read register `1100` even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` and `Charging power` value instead of showing `0`.
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
-- Phase switching and failsafe-related values are treated as optional. If the wallbox does not expose them, related entities may stay unavailable.
+- Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
 - `Charging enabled` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
 - The display `notify` service is only loaded when display support is detected.
 
