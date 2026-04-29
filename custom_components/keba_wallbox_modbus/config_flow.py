@@ -12,10 +12,14 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_DISPLAY_MAX_TIME,
+    CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
+    DEFAULT_DISPLAY_MAX_TIME,
+    DEFAULT_DISPLAY_MIN_TIME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIMEOUT,
@@ -23,6 +27,7 @@ from .const import (
     DOMAIN,
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
+    UDP_DISPLAY_MAX_DURATION,
     detect_wallbox_model,
     format_serial_number,
     model_name_for_key,
@@ -41,7 +46,17 @@ def _normalize_user_input(user_input: Dict[str, Any]) -> Dict[str, Any]:
         CONF_UNIT_ID: int(user_input[CONF_UNIT_ID]),
         CONF_TIMEOUT: int(user_input[CONF_TIMEOUT]),
         CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+        CONF_DISPLAY_MIN_TIME: int(user_input[CONF_DISPLAY_MIN_TIME]),
+        CONF_DISPLAY_MAX_TIME: int(user_input[CONF_DISPLAY_MAX_TIME]),
     }
+
+
+def _validate_display_defaults(user_input: Dict[str, Any]) -> dict[str, str]:
+    """Validate display duration defaults."""
+    if int(user_input[CONF_DISPLAY_MIN_TIME]) > int(user_input[CONF_DISPLAY_MAX_TIME]):
+        return {"base": "invalid_display_duration"}
+
+    return {}
 
 
 def _build_schema(defaults: Optional[Dict[str, Any]] = None) -> vol.Schema:
@@ -92,6 +107,28 @@ def _build_schema(defaults: Optional[Dict[str, Any]] = None) -> vol.Schema:
                 selector.NumberSelectorConfig(
                     min=5,
                     max=3600,
+                    step=1,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            vol.Required(
+                CONF_DISPLAY_MIN_TIME,
+                default=values.get(CONF_DISPLAY_MIN_TIME, DEFAULT_DISPLAY_MIN_TIME),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=UDP_DISPLAY_MAX_DURATION,
+                    step=1,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            vol.Required(
+                CONF_DISPLAY_MAX_TIME,
+                default=values.get(CONF_DISPLAY_MAX_TIME, DEFAULT_DISPLAY_MAX_TIME),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=UDP_DISPLAY_MAX_DURATION,
                     step=1,
                     mode=selector.NumberSelectorMode.BOX,
                 )
@@ -152,21 +189,23 @@ class KebaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             normalized_input = _normalize_user_input(user_input)
-            probe, errors = await _async_probe_user_input(
-                normalized_input,
-                context="discovery",
-            )
-            if probe is not None:
-                serial, model_name = _probe_identity(probe)
-                if serial is None:
-                    errors["base"] = "cannot_connect"
-                else:
-                    await self.async_set_unique_id(serial)
-                    self._abort_if_unique_id_configured()
-                    return self.async_create_entry(
-                        title=f"{model_name} {serial}",
-                        data=normalized_input,
-                    )
+            errors = _validate_display_defaults(normalized_input)
+            if not errors:
+                probe, errors = await _async_probe_user_input(
+                    normalized_input,
+                    context="discovery",
+                )
+                if probe is not None:
+                    serial, model_name = _probe_identity(probe)
+                    if serial is None:
+                        errors["base"] = "cannot_connect"
+                    else:
+                        await self.async_set_unique_id(serial)
+                        self._abort_if_unique_id_configured()
+                        return self.async_create_entry(
+                            title=f"{model_name} {serial}",
+                            data=normalized_input,
+                        )
 
         return self.async_show_form(
             step_id="user",
@@ -188,18 +227,23 @@ class KebaOptionsFlow(OptionsFlow):
 
         if user_input is not None:
             normalized_input = _normalize_user_input(user_input)
-            probe, errors = await _async_probe_user_input(
-                normalized_input,
-                context="option validation",
-            )
-            if probe is not None:
-                serial, _ = _probe_identity(probe)
-                if serial is None:
-                    errors["base"] = "cannot_connect"
-                elif self._entry.unique_id is not None and serial != self._entry.unique_id:
-                    errors["base"] = "different_device"
-                else:
-                    return self.async_create_entry(title="", data=normalized_input)
+            errors = _validate_display_defaults(normalized_input)
+            if not errors:
+                probe, errors = await _async_probe_user_input(
+                    normalized_input,
+                    context="option validation",
+                )
+                if probe is not None:
+                    serial, _ = _probe_identity(probe)
+                    if serial is None:
+                        errors["base"] = "cannot_connect"
+                    elif (
+                        self._entry.unique_id is not None
+                        and serial != self._entry.unique_id
+                    ):
+                        errors["base"] = "different_device"
+                    else:
+                        return self.async_create_entry(title="", data=normalized_input)
 
         return self.async_show_form(
             step_id="init",

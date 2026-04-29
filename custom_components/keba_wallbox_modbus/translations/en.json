@@ -3,19 +3,22 @@
     "step": {
       "user": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Configure the Modbus TCP connection to the wallbox. Optionally set a separate Display UDP host for UDP display messages; this is mainly relevant for P30 wallboxes with display.",
+        "description": "Configure the Modbus TCP connection to the wallbox. Optionally set a separate Display UDP host and default display durations for UDP display messages; this is mainly relevant for P30 wallboxes with display.",
         "data": {
           "host": "Host",
           "udp_host": "Display UDP host",
           "unit_id": "Modbus unit ID",
           "port": "Port",
           "timeout": "Timeout (seconds)",
-          "scan_interval": "Update interval (seconds)"
+          "scan_interval": "Update interval (seconds)",
+          "display_min_time": "Default display minimum duration (seconds)",
+          "display_max_time": "Default display maximum duration (seconds)"
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the wallbox.",
+      "invalid_display_duration": "The default display minimum duration must not be greater than the maximum duration.",
       "unknown": "Unexpected error."
     },
     "abort": {
@@ -26,20 +29,23 @@
     "step": {
       "init": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Adjust connection, display UDP and polling settings.",
+        "description": "Adjust connection, display UDP, default display duration and polling settings.",
         "data": {
           "host": "Host",
           "udp_host": "Display UDP host",
           "unit_id": "Modbus unit ID",
           "port": "Port",
           "timeout": "Timeout (seconds)",
-          "scan_interval": "Update interval (seconds)"
+          "scan_interval": "Update interval (seconds)",
+          "display_min_time": "Default display minimum duration (seconds)",
+          "display_max_time": "Default display maximum duration (seconds)"
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the wallbox.",
       "different_device": "The configured host belongs to a different wallbox.",
+      "invalid_display_duration": "The default display minimum duration must not be greater than the maximum duration.",
       "unknown": "Unexpected error."
     }
   },

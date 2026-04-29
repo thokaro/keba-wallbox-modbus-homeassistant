@@ -14,10 +14,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .capabilities import KebaCapabilities, derive_capabilities
 from .const import (
+    CONF_DISPLAY_MAX_TIME,
+    CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
+    DEFAULT_DISPLAY_MAX_TIME,
+    DEFAULT_DISPLAY_MIN_TIME,
     DEFAULT_UNIT_ID,
     DISCOVERY_REGISTER_MAP,
     KEY_FIRMWARE_VERSION,
@@ -111,6 +115,16 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.firmware_version_raw,
             model_key=self.model_key,
         )
+
+    @property
+    def display_min_time(self) -> float:
+        """Return the default minimum display duration."""
+        return float(self._config.get(CONF_DISPLAY_MIN_TIME, DEFAULT_DISPLAY_MIN_TIME))
+
+    @property
+    def display_max_time(self) -> float:
+        """Return the default maximum display duration."""
+        return float(self._config.get(CONF_DISPLAY_MAX_TIME, DEFAULT_DISPLAY_MAX_TIME))
 
     async def async_shutdown(self) -> None:
         """Close resources held by the coordinator."""

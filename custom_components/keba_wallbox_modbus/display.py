@@ -6,7 +6,7 @@ import json
 import socket
 from typing import Any
 
-from .const import UDP_DISPLAY_MAX_LENGTH, UDP_DISPLAY_PORT
+from .const import UDP_DISPLAY_MAX_DURATION, UDP_DISPLAY_MAX_LENGTH, UDP_DISPLAY_PORT
 from .modbus import KebaModbusError
 
 
@@ -24,9 +24,19 @@ class KebaDisplayClient:
         ):
             raise KebaModbusError("Display times must be numeric")
 
-        if min_time < 0 or min_time > 65535 or max_time < 0 or max_time > 65535:
+        if (
+            min_time < 0
+            or min_time > UDP_DISPLAY_MAX_DURATION
+            or max_time < 0
+            or max_time > UDP_DISPLAY_MAX_DURATION
+        ):
             raise KebaModbusError(
-                "Display times must be between 0 and 65535 seconds"
+                f"Display times must be between 0 and {UDP_DISPLAY_MAX_DURATION} seconds"
+            )
+
+        if min_time > max_time:
+            raise KebaModbusError(
+                "Display minimum time must not be greater than maximum time"
             )
 
         normalized_text = text.replace(" ", "$")[:UDP_DISPLAY_MAX_LENGTH]

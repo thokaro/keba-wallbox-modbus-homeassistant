@@ -3,19 +3,22 @@
     "step": {
       "user": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Konfiguriere die Modbus-TCP-Verbindung zur Wallbox. Optional kann ein separater Display-UDP-Host fuer UDP-Display-Nachrichten gesetzt werden; das ist vor allem fuer P30-Wallboxen mit Display relevant.",
+        "description": "Konfiguriere die Modbus-TCP-Verbindung zur Wallbox. Optional koennen ein separater Display-UDP-Host und Standard-Displaydauern fuer UDP-Display-Nachrichten gesetzt werden; das ist vor allem fuer P30-Wallboxen mit Display relevant.",
         "data": {
           "host": "Host",
           "udp_host": "Display-UDP-Host",
           "unit_id": "Modbus-Unit-ID",
           "port": "Port",
           "timeout": "Timeout (Sekunden)",
-          "scan_interval": "Aktualisierungsintervall (Sekunden)"
+          "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "display_min_time": "Standard-Minimaldauer Display (Sekunden)",
+          "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zur Wallbox fehlgeschlagen.",
+      "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht groesser als die Maximaldauer sein.",
       "unknown": "Unerwarteter Fehler."
     },
     "abort": {
@@ -26,20 +29,23 @@
     "step": {
       "init": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Passe Verbindungs-, Display-UDP- und Polling-Einstellungen an.",
+        "description": "Passe Verbindungs-, Display-UDP-, Standard-Displaydauer- und Polling-Einstellungen an.",
         "data": {
           "host": "Host",
           "udp_host": "Display-UDP-Host",
           "unit_id": "Modbus-Unit-ID",
           "port": "Port",
           "timeout": "Timeout (Sekunden)",
-          "scan_interval": "Aktualisierungsintervall (Sekunden)"
+          "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "display_min_time": "Standard-Minimaldauer Display (Sekunden)",
+          "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zur Wallbox fehlgeschlagen.",
       "different_device": "Der konfigurierte Host gehoert zu einer anderen Wallbox.",
+      "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht groesser als die Maximaldauer sein.",
       "unknown": "Unerwarteter Fehler."
     }
   },

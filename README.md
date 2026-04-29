@@ -17,7 +17,7 @@ This custom integration connects **KEBA KeContact P30 and P40** wallboxes to **H
 - 📊 Sensors for state, currents, voltages, power, energy and diagnostics
 - 🎛️ Writable entities for charging current, charging power, selected configuration registers and wallbox actions
 - 🏷️ Decoded product type and feature attributes on the diagnostic serial sensor
-- 🖥️ Optional UDP display support for `P30` wallboxes with display
+- 🖥️ Optional UDP display support for `P30` wallboxes with display via a Home Assistant `notify` entity
 - ⚙️ UI-based setup via Home Assistant config flow
 
 ---
@@ -88,23 +88,30 @@ After restarting Home Assistant:
 - `Port`: default `502`
 - `Timeout`: Modbus TCP timeout in seconds
 - `Update interval`: polling interval in seconds, default `30`, minimum `5`
+- `Default display minimum duration`: default `2` seconds, minimum `0`, maximum `10`
+- `Default display maximum duration`: default `10` seconds, minimum `0`, maximum `10`
 
 The integration validates the wallbox during setup by reading the serial number and product register.
+The display duration defaults can be changed later from the integration options.
+
+KEBA wallboxes allow only one active Modbus TCP client connection. If the wallbox should be controlled by multiple systems, for example Home Assistant and another energy manager, place a Modbus TCP proxy in front of the wallbox and connect all clients to that proxy. The built-in Modbus proxy in `evcc` can be used for this setup.
 
 ---
 
-## 🖥️ Notify Service
+## 🖥️ Display Notifications
 
-If display support is detected, Home Assistant also creates a `notify` service for the wallbox display. This is mainly relevant for `P30` wallboxes with display.
+If display support is detected, Home Assistant creates a `notify` entity for the wallbox display. This is mainly relevant for `P30` wallboxes with display.
 
-- The service name is derived from the wallbox or device name, for example `notify.keba_wallbox`.
-- `message` contains the text shown on the display.
-- `data.min_time` defines the minimum display duration in seconds.
-- `data.max_time` defines the maximum display duration in seconds.
-- `min_time` defaults to `2` seconds and `max_time` defaults to `10` seconds.
-- Both values must be numeric and are sent as rounded whole seconds.
+- The entity ID is derived from the wallbox or device name, for example `notify.keba_wallbox`.
+- `notify.send_message` uses Home Assistant's current notify entity action.
+- `message` contains the text shown on the wallbox display.
+- `notify.send_message` automatically uses the configured default display duration, so no timing data is needed in the action YAML. The factory defaults are `2` to `10` seconds.
+- Use `keba_wallbox_modbus.display_message` when the display duration should be configurable.
+- `min_time` defines the minimum display duration in seconds. The factory default is `2`.
+- `max_time` defines the maximum display duration in seconds. The factory default is `10`.
+- Both duration values must be numeric values between `0` and `10`, and `min_time` must not be greater than `max_time`. They are sent to the wallbox as rounded whole seconds.
 
-Example:
+Send a display message with the default duration:
 
 ```yaml
 action: notify.send_message
@@ -112,10 +119,21 @@ target:
   entity_id: notify.keba_wallbox
 data:
   message: "PV charging active"
-  data:
-    min_time: 5
-    max_time: 20
 ```
+
+Send a display message with custom duration. If `min_time` or `max_time` is omitted, the configured default is used for the missing value:
+
+```yaml
+action: keba_wallbox_modbus.display_message
+target:
+  entity_id: notify.keba_wallbox
+data:
+  message: "PV charging active"
+  min_time: 5
+  max_time: 10
+```
+
+When migrating automations from the old notify service behavior, move custom display timing out of `notify.send_message` and call `keba_wallbox_modbus.display_message` instead.
 
 ---
 
@@ -167,11 +185,16 @@ data:
 - `Persist failsafe settings` (`P30`)
 - `Activate fast charging` (`P40`)
 
+### Notify
+
+- Wallbox display notification entity (`P30` with detected display support)
+
 ---
 
 ## 📝 Important Notes
 
 - Some KEBA registers depend on wallbox model, firmware and licensed feature set.
+- KEBA wallboxes allow only one active Modbus TCP client. Use a Modbus TCP proxy, for example the built-in proxy in `evcc`, when multiple systems should access or control the wallbox.
 - The integration selects the correct register profile automatically for `P30` and `P40`.
 - Decoded product details from register `1016` are exposed as attributes on the diagnostic sensor `Serial number`.
 - `Phase switch source` uses model-specific option sets. `UDP` is only offered on `P30`.
@@ -185,10 +208,11 @@ data:
 - `Charging power` is a convenience slider that maps to the same current register `5004` using voltage registers `1040`, `1042` and `1044`. If phase or voltage data is missing, nominal device assumptions are used as fallback.
 - The integration allows `0` as a charging-current target on both `P30` and `P40`, so charging can be suspended directly via the writable current and power entities.
 - When the wallbox is disabled, KEBA may report `0` via read register `1100` even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` and `Charging power` value instead of showing `0`.
+- The switch key was renamed from `charging_enabled` to `charger_enable`. Existing entity IDs, dashboards or automations may therefore need to be adjusted after upgrading.
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
 - `Charger enable` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
-- The display `notify` service is only loaded when display support is detected.
+- The display `notify` entity and `keba_wallbox_modbus.display_message` action are only usable when display support is detected.
 
 ---
 
