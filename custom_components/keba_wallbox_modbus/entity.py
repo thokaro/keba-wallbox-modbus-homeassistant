@@ -16,6 +16,19 @@ DescriptionT = TypeVar("DescriptionT")
 EntityT = TypeVar("EntityT")
 
 
+def keba_device_info(coordinator: KebaDataUpdateCoordinator) -> DeviceInfo:
+    """Describe the backing KEBA wallbox."""
+    unique_root = coordinator.entry.unique_id or coordinator.entry.entry_id
+    return DeviceInfo(
+        identifiers={(DOMAIN, unique_root)},
+        manufacturer=MANUFACTURER,
+        model=coordinator.model,
+        name=coordinator.entry.title,
+        serial_number=coordinator.device_serial,
+        sw_version=coordinator.firmware_version,
+    )
+
+
 class KebaEntity(CoordinatorEntity[KebaDataUpdateCoordinator]):
     """Base class for KEBA entities."""
 
@@ -29,15 +42,9 @@ class KebaEntity(CoordinatorEntity[KebaDataUpdateCoordinator]):
     @property
     def device_info(self) -> DeviceInfo:
         """Describe the backing KEBA wallbox."""
-        unique_root = self.coordinator.entry.unique_id or self.coordinator.entry.entry_id
-        return DeviceInfo(
-            identifiers={(DOMAIN, unique_root)},
-            manufacturer=MANUFACTURER,
-            model=self.coordinator.model,
-            name=self.coordinator.entry.title,
-            serial_number=self.coordinator.device_serial,
-            sw_version=self.coordinator.firmware_version,
-        )
+        return keba_device_info(self.coordinator)
+
+
 def async_add_description_entities(
     async_add_entities: AddEntitiesCallback,
     coordinator: KebaDataUpdateCoordinator,

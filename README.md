@@ -102,13 +102,13 @@ KEBA wallboxes allow only one active Modbus TCP client connection. If the wallbo
 
 If display support is detected, Home Assistant creates a `notify` entity for the wallbox display. This is mainly relevant for `P30` wallboxes with display.
 
-- The entity ID is derived from the wallbox or device name, for example `notify.keba_wallbox`.
+- The entity ID is derived from the wallbox or device name, for example `notify.keba_p30`.
 - `notify.send_message` uses Home Assistant's current notify entity action.
 - `message` contains the text shown on the wallbox display.
 - `notify.send_message` automatically uses the configured default display duration, so no timing data is needed in the action YAML. The factory defaults are `2` to `10` seconds.
-- Use `keba_wallbox_modbus.display_message` when the display duration should be configurable.
-- `min_time` defines the minimum display duration in seconds. The factory default is `2`.
-- `max_time` defines the maximum display duration in seconds. The factory default is `10`.
+- Use the device-specific `display_message` action when the display duration should be configurable. The action domain matches the notify entity object ID, for example `keba_p30.display_message` for `notify.keba_p30`.
+- `data.min_time` defines the minimum display duration in seconds. The factory default is `2`.
+- `data.max_time` defines the maximum display duration in seconds. The factory default is `10`.
 - Both duration values must be numeric values between `0` and `10`, and `min_time` must not be greater than `max_time`. They are sent to the wallbox as rounded whole seconds.
 
 Send a display message with the default duration:
@@ -116,7 +116,7 @@ Send a display message with the default duration:
 ```yaml
 action: notify.send_message
 target:
-  entity_id: notify.keba_wallbox
+  entity_id: notify.keba_p30
 data:
   message: "PV charging active"
 ```
@@ -124,16 +124,15 @@ data:
 Send a display message with custom duration. If `min_time` or `max_time` is omitted, the configured default is used for the missing value:
 
 ```yaml
-action: keba_wallbox_modbus.display_message
-target:
-  entity_id: notify.keba_wallbox
+action: keba_p30.display_message
 data:
   message: "PV charging active"
-  min_time: 5
-  max_time: 10
+  data:
+    min_time: 5
+    max_time: 10
 ```
 
-When migrating automations from the old notify service behavior, move custom display timing out of `notify.send_message` and call `keba_wallbox_modbus.display_message` instead.
+When migrating automations from the old notify service behavior, move custom display timing out of `notify.send_message` and call the device-specific `display_message` action instead.
 
 ---
 
@@ -212,7 +211,7 @@ When migrating automations from the old notify service behavior, move custom dis
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
 - `Charger enable` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
-- The display `notify` entity and `keba_wallbox_modbus.display_message` action are only usable when display support is detected.
+- The display `notify` entity and its device-specific `display_message` action are only usable when display support is detected.
 
 ---
 

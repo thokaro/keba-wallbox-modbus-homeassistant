@@ -2,43 +2,16 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
-
 from homeassistant.config import ConfigType
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import service
 
-from .const import DOMAIN, PLATFORMS, UDP_DISPLAY_MAX_DURATION
+from .const import DOMAIN, PLATFORMS
 from .coordinator import KebaDataUpdateCoordinator
 
-ATTR_MAX_TIME = "max_time"
-ATTR_MESSAGE = "message"
-ATTR_MIN_TIME = "min_time"
 
-SERVICE_DISPLAY_MESSAGE = "display_message"
-DISPLAY_TIME_SCHEMA = vol.All(
-    vol.Coerce(float),
-    vol.Range(min=0, max=UDP_DISPLAY_MAX_DURATION),
-)
-
-
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up KEBA Wallbox Modbus services."""
-    service.async_register_platform_entity_service(
-        hass,
-        DOMAIN,
-        SERVICE_DISPLAY_MESSAGE,
-        entity_domain=Platform.NOTIFY,
-        schema={
-            vol.Required(ATTR_MESSAGE): cv.string,
-            vol.Optional(ATTR_MIN_TIME): DISPLAY_TIME_SCHEMA,
-            vol.Optional(ATTR_MAX_TIME): DISPLAY_TIME_SCHEMA,
-        },
-        func="async_display_message",
-    )
+async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
+    """Set up KEBA Wallbox Modbus."""
     return True
 
 
