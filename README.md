@@ -8,6 +8,9 @@
 
 This custom integration connects **KEBA KeContact P30 and P40** wallboxes to **Home Assistant** via **Modbus TCP**.
 
+> [!NOTE]
+> This integration is currently in **beta**. `P40` support is implemented, but I could not test it with a real `P40` wallbox yet. Feedback, test results and issue reports are very welcome.
+
 ---
 
 ## ✨ Features
