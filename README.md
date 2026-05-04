@@ -1,5 +1,4 @@
 [![Version](https://img.shields.io/github/v/release/thokaro/keba-wallbox-modbus-homeassistant)](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/releases)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Validate](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/actions/workflows/validate.yml/badge.svg)](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/actions/workflows/validate.yml)
 [![HACS Category](https://img.shields.io/badge/HACS-Integration-41BDF5.svg)](https://hacs.xyz/docs/categories/integration/)
 [![Platform](https://img.shields.io/badge/Platform-Home%20Assistant-41BDF5.svg)](https://www.home-assistant.io/)
