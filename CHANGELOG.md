@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.5.0b3 - 2026-05-04
+
+- Fixed hassfest validation by adding the config-entry-only config schema.
+- Fixed hassfest service validation by adding `services.yaml` for the display message service.
+- Fixed manifest key ordering required by hassfest.
+- Opted the GitHub Actions workflow into Node.js 24 action execution.
+
 ## 2026.5.0b2 - 2026-05-04
 
 - Added a Home Assistant reconfigure flow for connection settings and moved polling/display defaults to the options flow.

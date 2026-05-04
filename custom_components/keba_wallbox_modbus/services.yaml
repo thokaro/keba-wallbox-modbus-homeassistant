@@ -1,0 +1,30 @@
+display_message:
+  fields:
+    message:
+      required: true
+      example: PV charging active
+      selector:
+        text:
+    data:
+      required: false
+      example:
+        min_time: 2
+        max_time: 10
+      selector:
+        object:
+    min_time:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
+          mode: box
+    max_time:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
+          mode: box
