@@ -13,6 +13,34 @@
           "scan_interval": "Update interval (seconds)",
           "display_min_time": "Default display minimum duration (seconds)",
           "display_max_time": "Default display maximum duration (seconds)"
+        },
+        "data_description": {
+          "host": "IP address or DNS name used for Modbus TCP.",
+          "udp_host": "Optional separate IP address or DNS name used for UDP display commands. Leave empty to use the Modbus host.",
+          "unit_id": "Modbus unit ID used when reading and writing KEBA registers. Direct wallbox access usually uses 255.",
+          "port": "TCP port for Modbus TCP. KEBA wallboxes usually use 502.",
+          "timeout": "How long Home Assistant waits for each Modbus response.",
+          "scan_interval": "How often Home Assistant polls the wallbox.",
+          "display_min_time": "Default minimum duration for display messages sent without a custom value.",
+          "display_max_time": "Default maximum duration for display messages sent without a custom value."
+        }
+      },
+      "reconfigure": {
+        "title": "KEBA Wallbox Modbus",
+        "description": "Update the connection details. The wallbox serial number is checked before the existing entry is changed.",
+        "data": {
+          "host": "Host",
+          "udp_host": "Display UDP host",
+          "unit_id": "Modbus unit ID",
+          "port": "Port",
+          "timeout": "Timeout (seconds)"
+        },
+        "data_description": {
+          "host": "IP address or DNS name used for Modbus TCP.",
+          "udp_host": "Optional separate IP address or DNS name used for UDP display commands. Leave empty to use the Modbus host.",
+          "unit_id": "Modbus unit ID used when reading and writing KEBA registers. Direct wallbox access usually uses 255.",
+          "port": "TCP port for Modbus TCP. KEBA wallboxes usually use 502.",
+          "timeout": "How long Home Assistant waits for each Modbus response."
         }
       }
     },
@@ -29,22 +57,21 @@
     "step": {
       "init": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Adjust connection, display UDP, default display duration and polling settings.",
+        "description": "Adjust polling and default display duration settings.",
         "data": {
-          "host": "Host",
-          "udp_host": "Display UDP host",
-          "unit_id": "Modbus unit ID",
-          "port": "Port",
-          "timeout": "Timeout (seconds)",
           "scan_interval": "Update interval (seconds)",
           "display_min_time": "Default display minimum duration (seconds)",
           "display_max_time": "Default display maximum duration (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "How often Home Assistant polls the wallbox.",
+          "display_min_time": "Default minimum duration for display messages sent without a custom value.",
+          "display_max_time": "Default maximum duration for display messages sent without a custom value."
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the wallbox.",
-      "different_device": "The configured host belongs to a different wallbox.",
       "invalid_display_duration": "The default display minimum duration must not be greater than the maximum duration.",
       "unknown": "Unexpected error."
     }

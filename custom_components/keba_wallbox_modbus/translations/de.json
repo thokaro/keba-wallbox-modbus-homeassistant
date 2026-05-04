@@ -13,6 +13,34 @@
           "scan_interval": "Aktualisierungsintervall (Sekunden)",
           "display_min_time": "Standard-Minimaldauer Display (Sekunden)",
           "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder DNS-Name fuer Modbus TCP.",
+          "udp_host": "Optionale separate IP-Adresse oder DNS-Name fuer UDP-Displaybefehle. Leer lassen, um den Modbus-Host zu verwenden.",
+          "unit_id": "Modbus-Unit-ID zum Lesen und Schreiben der KEBA-Register. Direkter Wallbox-Zugriff verwendet normalerweise 255.",
+          "port": "TCP-Port fuer Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
+          "timeout": "Wie lange Home Assistant auf eine Modbus-Antwort wartet.",
+          "scan_interval": "Wie oft Home Assistant die Wallbox abfragt.",
+          "display_min_time": "Standard-Minimaldauer fuer Displaynachrichten ohne eigenen Wert.",
+          "display_max_time": "Standard-Maximaldauer fuer Displaynachrichten ohne eigenen Wert."
+        }
+      },
+      "reconfigure": {
+        "title": "KEBA Wallbox Modbus",
+        "description": "Aktualisiere die Verbindungsdaten. Die Seriennummer der Wallbox wird geprueft, bevor der bestehende Eintrag geaendert wird.",
+        "data": {
+          "host": "Host",
+          "udp_host": "Display-UDP-Host",
+          "unit_id": "Modbus-Unit-ID",
+          "port": "Port",
+          "timeout": "Timeout (Sekunden)"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder DNS-Name fuer Modbus TCP.",
+          "udp_host": "Optionale separate IP-Adresse oder DNS-Name fuer UDP-Displaybefehle. Leer lassen, um den Modbus-Host zu verwenden.",
+          "unit_id": "Modbus-Unit-ID zum Lesen und Schreiben der KEBA-Register. Direkter Wallbox-Zugriff verwendet normalerweise 255.",
+          "port": "TCP-Port fuer Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
+          "timeout": "Wie lange Home Assistant auf eine Modbus-Antwort wartet."
         }
       }
     },
@@ -29,22 +57,21 @@
     "step": {
       "init": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Passe Verbindungs-, Display-UDP-, Standard-Displaydauer- und Polling-Einstellungen an.",
+        "description": "Passe Polling- und Standard-Displaydauer-Einstellungen an.",
         "data": {
-          "host": "Host",
-          "udp_host": "Display-UDP-Host",
-          "unit_id": "Modbus-Unit-ID",
-          "port": "Port",
-          "timeout": "Timeout (Sekunden)",
           "scan_interval": "Aktualisierungsintervall (Sekunden)",
           "display_min_time": "Standard-Minimaldauer Display (Sekunden)",
           "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft Home Assistant die Wallbox abfragt.",
+          "display_min_time": "Standard-Minimaldauer fuer Displaynachrichten ohne eigenen Wert.",
+          "display_max_time": "Standard-Maximaldauer fuer Displaynachrichten ohne eigenen Wert."
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zur Wallbox fehlgeschlagen.",
-      "different_device": "Der konfigurierte Host gehoert zu einer anderen Wallbox.",
       "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht groesser als die Maximaldauer sein.",
       "unknown": "Unerwarteter Fehler."
     }

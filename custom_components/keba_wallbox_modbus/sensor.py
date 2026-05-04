@@ -8,11 +8,9 @@ from typing import Any, Optional
 from homeassistant.components.sensor import (
     SensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import KebaEntity, async_add_description_entities
 from .sensor_descriptions import (
@@ -20,15 +18,16 @@ from .sensor_descriptions import (
     SENSOR_DESCRIPTIONS,
     is_supported_sensor,
 )
+from .types import KebaConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KebaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KEBA wallbox sensors."""
-    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_description_entities(
         async_add_entities,
         coordinator,

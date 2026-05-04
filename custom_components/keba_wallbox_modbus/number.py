@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Optional
 
 from homeassistant.components.number import NumberEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
@@ -15,9 +14,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import KebaEntity, async_add_description_entities
+from .types import KebaConfigEntry
 from .write_descriptions import KebaNumberDescription, NUMBER_DESCRIPTIONS
 
 
@@ -29,11 +28,11 @@ def _format_value(value: float) -> str:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KebaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KEBA wallbox numbers."""
-    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_description_entities(
         async_add_entities,
         coordinator,

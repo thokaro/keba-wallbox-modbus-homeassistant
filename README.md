@@ -1,4 +1,6 @@
 [![Version](https://img.shields.io/github/v/release/thokaro/keba-wallbox-modbus-homeassistant)](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/releases)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Validate](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/actions/workflows/validate.yml/badge.svg)](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/actions/workflows/validate.yml)
 [![HACS Category](https://img.shields.io/badge/HACS-Integration-41BDF5.svg)](https://hacs.xyz/docs/categories/integration/)
 [![Platform](https://img.shields.io/badge/Platform-Home%20Assistant-41BDF5.svg)](https://www.home-assistant.io/)
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/thokaro)
@@ -22,6 +24,20 @@ This custom integration connects **KEBA KeContact P30 and P40** wallboxes to **H
 - 🏷️ Decoded product type and feature attributes on the diagnostic serial sensor
 - 🖥️ Optional UDP display support for `P30` wallboxes with display via a Home Assistant `notify` entity
 - ⚙️ UI-based setup via Home Assistant config flow
+
+### Model Feature Matrix
+
+| Feature | P30 | P40 |
+| --- | --- | --- |
+| Automatic model detection | ✅ | ✅ |
+| Runtime sensors for state, current, voltage, power and energy | ✅ | ✅ |
+| Writable charging current and charging power | ✅ | ✅ |
+| Phase switch source and state | ✅ | ✅ |
+| UDP display notification entity | ✅, display variants only | ❌ |
+| Persist failsafe settings button | ✅ | ❌ |
+| Fast charging state and activation button | ❌ | ✅ |
+| Hardware revision sensors | ❌ | ✅ |
+| P40 pre-`1.2.1` energy scaling compensation | ❌ | ✅ |
 
 ---
 
@@ -213,7 +229,6 @@ When migrating automations from the old notify service behavior, move custom dis
 - The switch key was renamed from `charging_enabled` to `charger_enable`. Existing entity IDs, dashboards or automations may therefore need to be adjusted after upgrading.
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
-- `Charger enable` and `Session energy limit` currently use optimistic state handling because there is no direct readback implemented for those command registers.
 - The display `notify` entity and its device-specific `display_message` action are only usable when display support is detected.
 
 ---
@@ -226,6 +241,41 @@ The following points are **community findings** and not part of the official KEB
 - A successful phase switch may briefly interrupt charging before the relay state changes and charging resumes.
 - If a new `5052` command is sent during that cooldown, it may simply be ignored instead of being queued for later execution.
 - Re-sending the desired phase-switch command periodically can therefore be more reliable than sending it only once.
+
+---
+
+## 🔧 Troubleshooting
+
+### Setup Fails With `cannot_connect`
+
+- Check that Modbus TCP is enabled on the wallbox.
+- Verify the wallbox IP address or DNS name and the configured port. The default Modbus TCP port is `502`.
+- Keep `Modbus unit ID` at `255` for direct KEBA access unless a Modbus proxy requires a different value.
+- Make sure the wallbox is reachable from the Home Assistant host and no firewall blocks TCP traffic to the Modbus port.
+- Temporarily increase `Timeout` if the network path is slow or goes through a proxy.
+
+### Entities Become Unavailable Or Updates Stop
+
+- KEBA wallboxes allow only one active Modbus TCP client connection. Disconnect other Modbus clients or place a Modbus TCP proxy in front of the wallbox.
+- If a proxy is used, confirm that it exposes all registers used by the integration. Missing optional runtime registers can make individual entities unavailable.
+- Increase `Update interval` if the wallbox or proxy becomes unstable under frequent polling.
+
+### Display Notification Entity Is Missing
+
+- Display support is detected via UDP and is mainly relevant for `P30` wallboxes with display.
+- Check `Display UDP host` if Modbus and UDP display commands need to use different addresses.
+- Confirm that UDP traffic to the wallbox is allowed on the network.
+- `P40` display notifications are not exposed by this integration.
+
+### P40 Feedback And Diagnostics
+
+`P40` support is implemented but still marked beta. If behavior differs from the expected register data, open an issue and include:
+
+- Wallbox model and firmware version
+- Home Assistant version
+- Integration version
+- A diagnostics download from the integration page
+- A short description of which entity or action behaves unexpectedly
 
 ---
 

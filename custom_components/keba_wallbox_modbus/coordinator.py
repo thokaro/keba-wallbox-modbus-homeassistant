@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .capabilities import KebaCapabilities, derive_capabilities
+from .config_data import effective_config
 from .const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
@@ -45,7 +46,7 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
-        self._config = {**entry.data, **entry.options}
+        self._config = effective_config(dict(entry.data), dict(entry.options))
         self._display_udp_host = self._config.get(CONF_UDP_HOST) or self._config[CONF_HOST]
         self._display = KebaDisplayClient(
             host=self._display_udp_host,

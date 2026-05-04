@@ -6,23 +6,22 @@ from collections.abc import Mapping
 from typing import Optional
 
 from homeassistant.components.select import SelectEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import KebaEntity, async_add_description_entities
+from .types import KebaConfigEntry
 from .write_descriptions import KebaSelectDescription, SELECT_DESCRIPTIONS
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KebaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KEBA wallbox selects."""
-    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_description_entities(
         async_add_entities,
         coordinator,

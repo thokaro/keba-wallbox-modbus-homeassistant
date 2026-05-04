@@ -7,17 +7,17 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components.notify import NotifyEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, split_entity_id
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, service
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, UDP_DISPLAY_MAX_DURATION
+from .const import UDP_DISPLAY_MAX_DURATION
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import keba_device_info
 from .modbus import KebaModbusError
+from .types import KebaConfigEntry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,11 +70,11 @@ DISPLAY_MESSAGE_SERVICE_DESCRIPTION = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KebaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the KEBA display notify entity."""
-    coordinator: KebaDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     if not await coordinator.async_probe_display_support():
         return
 

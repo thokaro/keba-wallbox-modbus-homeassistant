@@ -12,7 +12,6 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_UDP_HOST,
-    DOMAIN,
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
     describe_product,
@@ -66,9 +65,7 @@ async def async_get_config_entry_diagnostics(
     entry: ConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: KebaDataUpdateCoordinator | None = hass.data.get(DOMAIN, {}).get(
-        entry.entry_id
-    )
+    coordinator: KebaDataUpdateCoordinator | None = getattr(entry, "runtime_data", None)
 
     diagnostics: dict[str, Any] = {
         "config_entry": {
