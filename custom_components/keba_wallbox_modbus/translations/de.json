@@ -50,7 +50,8 @@
       "unknown": "Unerwarteter Fehler."
     },
     "abort": {
-      "already_configured": "Diese Wallbox ist bereits eingerichtet."
+      "already_configured": "Diese Wallbox ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Verbindungseinstellungen wurden aktualisiert."
     }
   },
   "options": {
@@ -79,6 +80,9 @@
   "entity": {
     "sensor": {
       "charging_state": {
+        "name": "Ladezustand"
+      },
+      "charger_status": {
         "name": "Ladestatus"
       },
       "cable_state": {
@@ -143,7 +147,7 @@
       "charging_current_limit": {
         "name": "Ladestromlimit"
       },
-      "charging_power_limit": {
+      "charging_power": {
         "name": "Ladeleistung"
       },
       "session_energy_limit": {

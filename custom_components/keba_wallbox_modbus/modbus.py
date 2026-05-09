@@ -49,39 +49,40 @@ class KebaModbusHub:
         values: Dict[str, Optional[int]] = {}
         successes = 0
 
-        async with self._lock:
-            client = await self._ensure_connected()
-
-            for index, (key, address) in enumerate(items):
-                try:
+        for index, (key, address) in enumerate(items):
+            try:
+                async with self._lock:
+                    client = await self._ensure_connected()
                     response = await self._async_call_with_unit_id(
                         client.read_holding_registers,
                         address=address,
                         count=2,
                     )
-                except Exception as err:
+            except Exception as err:
+                if key in optional_keys:
+                    values[key] = None
+                else:
+                    async with self._lock:
+                        self._reset_client()
+                    raise KebaModbusError(
+                        f"Failed to read register {address}: {err}"
+                    ) from err
+            else:
+                if response.isError() or len(response.registers) < 2:
                     if key in optional_keys:
                         values[key] = None
                     else:
-                        self._reset_client()
-                        raise KebaModbusError(
-                            f"Failed to read register {address}: {err}"
-                        ) from err
-                else:
-                    if response.isError() or len(response.registers) < 2:
-                        if key in optional_keys:
-                            values[key] = None
-                        else:
+                        async with self._lock:
                             self._reset_client()
-                            raise KebaModbusError(
-                                f"Modbus error while reading register {address}: {response}"
-                            )
-                    else:
-                        successes += 1
-                        values[key] = (response.registers[0] << 16) | response.registers[1]
+                        raise KebaModbusError(
+                            f"Modbus error while reading register {address}: {response}"
+                        )
+                else:
+                    successes += 1
+                    values[key] = (response.registers[0] << 16) | response.registers[1]
 
-                if index < len(items) - 1:
-                    await asyncio.sleep(MIN_READ_INTERVAL)
+            if index < len(items) - 1:
+                await asyncio.sleep(MIN_READ_INTERVAL)
 
         if successes == 0:
             raise KebaModbusError("No Modbus registers could be read")

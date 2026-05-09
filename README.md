@@ -116,6 +116,61 @@ KEBA wallboxes allow only one active Modbus TCP client connection. If the wallbo
 
 ---
 
+## 📊 Exposed Entities
+
+### Sensors
+
+- Charging state
+- Charger status (`A` ready, `B` connected, `C` charging)
+- Cable state
+- Error code
+- Phase 1 current
+- Phase 2 current
+- Phase 3 current
+- Active power
+- Total energy
+- Session energy
+- Phase 1 voltage
+- Phase 2 voltage
+- Phase 3 voltage
+- Power factor
+- Charging current limit
+- Maximum supported current
+- Fast charging state (`P40`)
+- Serial number
+- Firmware version
+- Hardware revision device (`P40`)
+- Hardware revision MS10 (`P40`)
+
+### Numbers
+
+- Charging current limit
+- Charging power
+- Session energy limit
+- Failsafe current
+- Failsafe timeout
+
+### Switches
+
+- Charger enable
+
+### Selects
+
+- Phase switch source
+- Phase switch state
+
+### Buttons
+
+- Unlock plug
+- Persist failsafe settings (`P30`)
+- Activate fast charging (`P40`)
+
+### Notify
+
+- Wallbox display notification entity (`P30` with detected display support)
+
+---
+
 ## 🖥️ Display Notifications
 
 If display support is detected, Home Assistant creates a `notify` entity for the wallbox display. This is mainly relevant for `P30` wallboxes with display.
@@ -154,79 +209,26 @@ When migrating automations from the old notify service behavior, move custom dis
 
 ---
 
-## 📊 Exposed Entities
-
-### Sensors
-
-- `Charging state`
-- `Cable state`
-- `Error code`
-- `Phase 1 current`
-- `Phase 2 current`
-- `Phase 3 current`
-- `Active power`
-- `Total energy`
-- `Session energy`
-- `Phase 1 voltage`
-- `Phase 2 voltage`
-- `Phase 3 voltage`
-- `Power factor`
-- `Charging current limit`
-- `Maximum supported current`
-- `Fast charging state` (`P40`)
-- `Serial number`
-- `Firmware version`
-- `Hardware revision device` (`P40`)
-- `Hardware revision MS10` (`P40`)
-
-### Numbers
-
-- `Charging current limit`
-- `Charging power`
-- `Session energy limit`
-- `Failsafe current`
-- `Failsafe timeout`
-
-### Switches
-
-- `Charger enable`
-
-### Selects
-
-- `Phase switch source`
-- `Phase switch state`
-
-### Buttons
-
-- `Unlock plug`
-- `Persist failsafe settings` (`P30`)
-- `Activate fast charging` (`P40`)
-
-### Notify
-
-- Wallbox display notification entity (`P30` with detected display support)
-
----
-
 ## 📝 Important Notes
 
 - Some KEBA registers depend on wallbox model, firmware and licensed feature set.
 - KEBA wallboxes allow only one active Modbus TCP client. Use a Modbus TCP proxy, for example the built-in proxy in `evcc`, when multiple systems should access or control the wallbox.
 - The integration selects the correct register profile automatically for `P30` and `P40`.
-- Decoded product details from register `1016` are exposed as attributes on the diagnostic sensor `Serial number`.
+- Decoded product details from register `1016` (`Product type and features`) are exposed as attributes on the diagnostic sensor `Serial number`.
 - `Phase switch source` uses model-specific option sets. `UDP` is only offered on `P30`.
 - `Persist failsafe settings` exists only on `P30`. `Activate fast charging` exists only on `P40`.
-- `Unlock plug` is only exposed for `socket` variants. On `P30`, KEBA documents that unlocking is only possible in `suspended` state and the charging process must be stopped beforehand, for example via register `5014`.
-- `Failsafe current` accepts `0` A or `6` to `32` A. `0` A suspends charging when failsafe mode becomes active.
+- `Unlock plug` is only exposed for `socket` variants. On `P30`, KEBA documents that unlocking is only possible in `suspended` state and the charging process must be stopped beforehand, for example via register `5014` (`Enable/Disable charging station`).
+- `Failsafe current` accepts `0` A or `6` to `32` A in 0.1 A steps. `0` A suspends charging when failsafe mode becomes active.
 - `Failsafe timeout` accepts `0` s or `5` to `600` s. `0` deactivates failsafe mode.
 - `Persist failsafe settings` exists only on `P30` and writes the current failsafe configuration to the wallbox EEPROM.
 - `Failsafe` activates only after a timeout value greater than `0` is written. Every received Modbus command resets the internal timeout timer.
-- On `P30`, disabling a previously persisted failsafe requires writing timeout `0` and then persisting again with `5020 = 1`.
-- `Charging power` is a convenience slider that maps to the same current register `5004` using voltage registers `1040`, `1042` and `1044`. If phase or voltage data is missing, nominal device assumptions are used as fallback.
-- The integration allows `0` as a charging-current target on both `P30` and `P40`, so charging can be suspended directly via the writable current and power entities.
-- When the wallbox is disabled, KEBA may report `0` via read register `1100` even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` and `Charging power` value instead of showing `0`.
+- On `P30`, disabling a previously persisted failsafe requires writing timeout `0` to register `5018` (`Failsafe timeout`) and then persisting again with register `5020` (`Failsafe Persist`) set to `1`.
+- `Charging power` is the desired active charging power in kW. It is stored as an optimistic target and immediately writes one calculated charging-current limit to register `5004` (`Set charging current`).
+- Writing `Charging current limit` manually is treated as a direct current override. Writable current values are adjustable only in 0.1 A steps.
+- The integration allows `0` as a charging-current target on both `P30` and `P40`, so charging can be suspended directly via `Charging current limit`.
+- When the wallbox is disabled, KEBA may report `0` via read register `1100` (`Max charging current`) even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` value instead of showing `0`.
 - The switch key was renamed from `charging_enabled` to `charger_enable`. Existing entity IDs, dashboards or automations may therefore need to be adjusted after upgrading.
-- For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` and `1502` report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
+- For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` (`Total energy`) and `1502` (`Charged energy`) report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
 - The display `notify` entity and its device-specific `display_message` action are only usable when display support is detected.
 

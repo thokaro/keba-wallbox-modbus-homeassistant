@@ -133,6 +133,7 @@ async def test_reconfigure_flow_updates_connection_data(
         )
 
     assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
     assert entry.data == updated
     assert entry.options == OPTION_INPUT
 

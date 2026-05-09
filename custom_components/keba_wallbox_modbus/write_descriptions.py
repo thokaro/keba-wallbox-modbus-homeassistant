@@ -22,117 +22,39 @@ from .const import (
     KEY_FAILSAFE_CURRENT,
     KEY_FAILSAFE_TIMEOUT,
     KEY_MAX_CHARGING_CURRENT,
-    KEY_MAX_SUPPORTED_CURRENT,
     KEY_PHASE_SWITCH_SOURCE,
     KEY_PHASE_SWITCH_STATE,
-    KEY_PRODUCT,
-    KEY_VOLTAGE_L1,
-    KEY_VOLTAGE_L2,
-    KEY_VOLTAGE_L3,
-    MODEL_KEY_P40,
     PHASE_SWITCH_STATE_MAP,
     PHASE_SWITCH_STATE_WRITE_MAP,
+    WRITE_REGISTER_CHARGING_CURRENT,
     scale_milliamps,
 )
 from .coordinator import KebaDataUpdateCoordinator
+from .power_control import (
+    charging_power_max_value,
+    max_current_limit,
+)
 
-NOMINAL_PHASE_VOLTAGE = 230
+CHARGING_POWER_KEY = "charging_power"
 
 
 def _is_integer_value(value: float) -> bool:
     return float(value).is_integer()
 
 
+def _is_tenth_amp_value(value: float) -> bool:
+    return (float(value) * 10).is_integer()
+
+
 def _max_current_limit(coordinator: KebaDataUpdateCoordinator) -> float:
-    if coordinator.data is not None:
-        raw = coordinator.data.get(KEY_MAX_SUPPORTED_CURRENT)
-        limit = scale_milliamps(raw)
-        if limit is not None:
-            return min(63.0, limit)
-
-    return 63.0
-
-
-def _default_phase_count(coordinator: KebaDataUpdateCoordinator) -> int:
-    if coordinator.model_key != MODEL_KEY_P40 or coordinator.data is None:
-        return 3
-
-    raw_product = coordinator.data.get(KEY_PRODUCT)
-    if raw_product is None:
-        return 3
-
-    digits = str(abs(raw_product)).zfill(7)
-    return 1 if digits[3] == "1" else 3
-
-
-def _active_phase_count(coordinator: KebaDataUpdateCoordinator) -> int:
-    if coordinator.data is not None:
-        phase_state = coordinator.data.get(KEY_PHASE_SWITCH_STATE)
-        if phase_state == 1:
-            return 1
-        if phase_state == 3:
-            return 3
-
-    return _default_phase_count(coordinator)
-
-
-def _power_per_amp(coordinator: KebaDataUpdateCoordinator) -> int:
-    phase_count = _active_phase_count(coordinator)
-
-    if coordinator.data is None:
-        return phase_count * NOMINAL_PHASE_VOLTAGE
-
-    voltages = [
-        float(raw)
-        for raw in (
-            coordinator.data.get(KEY_VOLTAGE_L1),
-            coordinator.data.get(KEY_VOLTAGE_L2),
-            coordinator.data.get(KEY_VOLTAGE_L3),
-        )
-        if isinstance(raw, int) and raw > 0
-    ]
-
-    if not voltages:
-        return phase_count * NOMINAL_PHASE_VOLTAGE
-
-    if phase_count == 1:
-        return round(sum(voltages) / len(voltages))
-
-    if len(voltages) >= phase_count:
-        return round(sum(voltages[:phase_count]))
-
-    return round(sum(voltages) * phase_count / len(voltages))
-
-
-def _current_raw_to_power_kw(
-    coordinator: KebaDataUpdateCoordinator,
-    raw: int,
-) -> float:
-    amps = scale_milliamps(raw) or 0.0
-    return round(amps * _power_per_amp(coordinator) / 1000, 1)
-
-
-def _power_kw_to_current_raw(
-    coordinator: KebaDataUpdateCoordinator,
-    value: float,
-) -> int:
-    amps = value * 1000 / _power_per_amp(coordinator)
-    return int(round(amps * 1000))
-
-
-def _charging_power_min_value(coordinator: KebaDataUpdateCoordinator) -> float:
-    return round(
-        coordinator.profile.charging_current_min_amps
-        * _power_per_amp(coordinator)
-        / 1000,
-        1,
-    )
+    return max_current_limit(coordinator.data)
 
 
 def _charging_power_max_value(coordinator: KebaDataUpdateCoordinator) -> float:
-    return round(
-        _max_current_limit(coordinator) * _power_per_amp(coordinator) / 1000,
-        1,
+    return charging_power_max_value(
+        coordinator.data,
+        coordinator.model_key,
+        coordinator.profile,
     )
 
 
@@ -163,7 +85,9 @@ BUTTON_DESCRIPTIONS: tuple[KebaButtonDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         register=5020,
         value=1,
-        is_supported=lambda coordinator: coordinator.capabilities.supports_failsafe_persist,
+        is_supported=lambda coordinator: (
+            coordinator.capabilities.supports_failsafe_persist
+        ),
     ),
     KebaButtonDescription(
         key="activate_fast_charging",
@@ -171,7 +95,9 @@ BUTTON_DESCRIPTIONS: tuple[KebaButtonDescription, ...] = (
         icon="mdi:flash",
         register=5200,
         value=1,
-        is_supported=lambda coordinator: coordinator.capabilities.supports_fast_charging,
+        is_supported=lambda coordinator: (
+            coordinator.capabilities.supports_fast_charging
+        ),
     ),
 )
 
@@ -225,9 +151,7 @@ class KebaNumberDescription(NumberEntityDescription):
         default=lambda _, value: int(round(value))
     )
     read_key: Optional[str] = None
-    from_raw_fn: Optional[
-        Callable[[KebaDataUpdateCoordinator, int], float]
-    ] = None
+    from_raw_fn: Optional[Callable[[KebaDataUpdateCoordinator, int], float]] = None
     min_value_fn: Optional[Callable[[KebaDataUpdateCoordinator], float]] = None
     max_value_fn: Optional[Callable[[KebaDataUpdateCoordinator], float]] = None
     validate_fn: Optional[Callable[[float], Optional[str]]] = None
@@ -242,10 +166,10 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
         icon="mdi:current-ac",
         native_min_value=0,
         native_max_value=63,
-        native_step=1,
+        native_step=0.1,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         mode=NumberMode.BOX,
-        register=5004,
+        register=WRITE_REGISTER_CHARGING_CURRENT,
         to_raw_fn=lambda _, value: int(round(value * 1000)),
         read_key=KEY_MAX_CHARGING_CURRENT,
         from_raw_fn=lambda _, raw: scale_milliamps(raw) or 0.0,
@@ -253,24 +177,26 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
             coordinator.profile.charging_current_min_amps
         ),
         max_value_fn=_max_current_limit,
+        validate_fn=lambda value: (
+            None
+            if _is_tenth_amp_value(value)
+            else "Allowed values are 0.1 A steps"
+        ),
         retain_last_value_on_zero_readback=True,
     ),
     KebaNumberDescription(
-        key="charging_power_limit",
+        key=CHARGING_POWER_KEY,
         name="Charging power",
-        icon="mdi:lightning-bolt",
+        icon="mdi:home-lightning-bolt-outline",
         native_min_value=0,
         native_max_value=43.5,
-        native_step=0.1,
+        native_step=0.01,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        mode=NumberMode.SLIDER,
-        register=5004,
-        to_raw_fn=_power_kw_to_current_raw,
-        read_key=KEY_MAX_CHARGING_CURRENT,
-        from_raw_fn=_current_raw_to_power_kw,
-        min_value_fn=_charging_power_min_value,
+        mode=NumberMode.BOX,
+        register=WRITE_REGISTER_CHARGING_CURRENT,
+        min_value_fn=lambda _: 0.0,
         max_value_fn=_charging_power_max_value,
-        retain_last_value_on_zero_readback=True,
+        optimistic=True,
     ),
     KebaNumberDescription(
         key="session_energy_limit",
@@ -288,20 +214,22 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
     KebaNumberDescription(
         key="failsafe_current",
         name="Failsafe current",
-        icon="mdi:shield-bolt",
+        icon="mdi:shield-alert-outline",
         entity_category=EntityCategory.CONFIG,
         native_min_value=0,
         native_max_value=32,
-        native_step=1,
+        native_step=0.1,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         mode=NumberMode.SLIDER,
         register=5016,
         to_raw_fn=lambda _, value: int(round(value * 1000)),
         read_key=KEY_FAILSAFE_CURRENT,
         from_raw_fn=lambda _, raw: scale_milliamps(raw) or 0.0,
-        validate_fn=lambda value: None
-        if _is_integer_value(value) and (value == 0 or 6 <= value <= 32)
-        else "Allowed values are integer 0 A or integer 6-32 A",
+        validate_fn=lambda value: (
+            None
+            if _is_tenth_amp_value(value) and (value == 0 or 6 <= value <= 32)
+            else "Allowed values are 0 A or 6-32 A in 0.1 A steps"
+        ),
     ),
     KebaNumberDescription(
         key="failsafe_timeout",
@@ -317,15 +245,18 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
         to_raw_fn=lambda _, value: int(round(value)),
         read_key=KEY_FAILSAFE_TIMEOUT,
         from_raw_fn=lambda _, raw: float(raw),
-        validate_fn=lambda value: None
-        if _is_integer_value(value) and (value == 0 or 5 <= value <= 600)
-        else "Allowed values are integer 0 s or integer 5-600 s",
+        validate_fn=lambda value: (
+            None
+            if _is_integer_value(value) and (value == 0 or 5 <= value <= 600)
+            else "Allowed values are integer 0 s or integer 5-600 s"
+        ),
     ),
 )
 
 
 __all__ = [
     "BUTTON_DESCRIPTIONS",
+    "CHARGING_POWER_KEY",
     "KebaButtonDescription",
     "KebaNumberDescription",
     "KebaSelectDescription",

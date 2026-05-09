@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 KEY_CHARGING_STATE = "charging_state"
+KEY_CHARGER_STATUS = "charger_status"
 KEY_CABLE_STATE = "cable_state"
 KEY_ERROR_CODE = "error_code"
 KEY_CURRENT_L1 = "current_l1"
@@ -27,6 +28,8 @@ KEY_FAILSAFE_CURRENT = "failsafe_current"
 KEY_FAILSAFE_TIMEOUT = "failsafe_timeout"
 KEY_HARDWARE_REVISION_DEVICE = "hardware_revision_device"
 KEY_HARDWARE_REVISION_MS10 = "hardware_revision_ms10"
+
+WRITE_REGISTER_CHARGING_CURRENT = 5004
 
 DISCOVERY_REGISTER_MAP: dict[str, int] = {
     KEY_SERIAL_NUMBER: 1014,
@@ -56,19 +59,6 @@ COMMON_RUNTIME_REGISTER_MAP: dict[str, int] = {
     KEY_FAILSAFE_TIMEOUT: 1602,
 }
 
-COMMON_OPTIONAL_RUNTIME_KEYS = frozenset(
-    {
-        KEY_VOLTAGE_L1,
-        KEY_VOLTAGE_L2,
-        KEY_VOLTAGE_L3,
-        KEY_POWER_FACTOR,
-        KEY_PHASE_SWITCH_SOURCE,
-        KEY_PHASE_SWITCH_STATE,
-        KEY_FAILSAFE_CURRENT,
-        KEY_FAILSAFE_TIMEOUT,
-    }
-)
-
 P30_STATIC_REGISTER_MAP: dict[str, int] = {
     **DISCOVERY_REGISTER_MAP,
 }
@@ -95,6 +85,13 @@ CHARGING_STATE_MAP: dict[int, str] = {
     3: "charging",
     4: "error",
     5: "suspended",
+}
+
+CHARGER_STATUS_MAP: dict[int, str] = {
+    1: "A",
+    2: "B",
+    3: "C",
+    5: "B",
 }
 
 CABLE_STATE_MAP: dict[int, str] = {
@@ -137,14 +134,15 @@ PHASE_SWITCH_STATE_WRITE_MAP: dict[str, int] = {
 
 __all__ = [
     "CABLE_STATE_MAP",
+    "CHARGER_STATUS_MAP",
     "CHARGING_STATE_MAP",
-    "COMMON_OPTIONAL_RUNTIME_KEYS",
     "COMMON_RUNTIME_REGISTER_MAP",
     "DISCOVERY_REGISTER_MAP",
     "FAST_CHARGING_STATE_MAP",
     "KEY_ACTIVE_POWER",
     "KEY_CABLE_STATE",
     "KEY_CHARGING_STATE",
+    "KEY_CHARGER_STATUS",
     "KEY_CURRENT_L1",
     "KEY_CURRENT_L2",
     "KEY_CURRENT_L3",
@@ -175,4 +173,5 @@ __all__ = [
     "PHASE_SWITCH_SOURCE_MAP_P40",
     "PHASE_SWITCH_STATE_MAP",
     "PHASE_SWITCH_STATE_WRITE_MAP",
+    "WRITE_REGISTER_CHARGING_CURRENT",
 ]

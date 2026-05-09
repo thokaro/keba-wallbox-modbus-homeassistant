@@ -26,8 +26,10 @@ from .const import (
     DEFAULT_UNIT_ID,
     DISCOVERY_REGISTER_MAP,
     KEY_FIRMWARE_VERSION,
+    KEY_MAX_CHARGING_CURRENT,
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
+    WRITE_REGISTER_CHARGING_CURRENT,
     DOMAIN,
     KebaProfile,
     detect_wallbox_model,
@@ -37,8 +39,11 @@ from .const import (
 )
 from .display import KebaDisplayClient
 from .modbus import KebaModbusError, KebaModbusHub
+from .power_control import charging_power_current_raw, regulated_power_current_raw
 
 LOGGER = logging.getLogger(__name__)
+
+CHARGING_POWER_TARGET_REGULATION_HOLDOFF_CYCLES = 2
 
 
 class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -47,7 +52,9 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
         self._config = effective_config(dict(entry.data), dict(entry.options))
-        self._display_udp_host = self._config.get(CONF_UDP_HOST) or self._config[CONF_HOST]
+        self._display_udp_host = (
+            self._config.get(CONF_UDP_HOST) or self._config[CONF_HOST]
+        )
         self._display = KebaDisplayClient(
             host=self._display_udp_host,
             timeout=self._config[CONF_TIMEOUT],
@@ -67,6 +74,9 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._display_supported: Optional[bool] = None
         self._profile = get_wallbox_profile(None)
+        self._charging_power_target: Optional[float] = None
+        self._charging_current_regulation_enabled = False
+        self._charging_current_regulation_holdoff_cycles = 0
 
     @property
     def device_serial(self) -> Optional[str]:
@@ -127,6 +137,28 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Return the default maximum display duration."""
         return float(self._config.get(CONF_DISPLAY_MAX_TIME, DEFAULT_DISPLAY_MAX_TIME))
 
+    @property
+    def charging_power_target(self) -> Optional[float]:
+        """Return the charging power target in kW."""
+        return self._charging_power_target
+
+    @property
+    def charging_current_regulation_enabled(self) -> bool:
+        """Return whether charging current regulation is enabled."""
+        return self._charging_current_regulation_enabled
+
+    def set_charging_power_target(self, value: Optional[float]) -> None:
+        """Set the charging power target in kW."""
+        if value is None or value <= 0:
+            self._charging_power_target = None
+            return
+
+        self._charging_power_target = value
+
+    def set_charging_current_regulation_enabled(self, enabled: bool) -> None:
+        """Enable or disable charging current regulation."""
+        self._charging_current_regulation_enabled = enabled
+
     async def async_shutdown(self) -> None:
         """Close resources held by the coordinator."""
         await self.hub.async_close()
@@ -139,6 +171,75 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Write a KEBA register and refresh coordinator data afterwards."""
         await self.async_write_register(address, value)
         await self.async_request_refresh()
+
+    async def async_apply_charging_power_target(
+        self,
+        target_kw: float,
+        data: dict[str, Any] | None = None,
+    ) -> Optional[int]:
+        """Apply the direct current limit for a charging power target."""
+        source = data if data is not None else self.data
+
+        raw = charging_power_current_raw(
+            source,
+            detect_wallbox_model(source.get(KEY_PRODUCT)) if source is not None else None,
+            self._profile,
+            target_kw,
+        )
+        if raw is None:
+            return None
+
+        LOGGER.debug("Applying charging power target %.2f kW as %s mA", target_kw, raw)
+        await self.async_write_register(WRITE_REGISTER_CHARGING_CURRENT, raw)
+        if source is not None:
+            source[KEY_MAX_CHARGING_CURRENT] = raw
+        if self._charging_current_regulation_enabled:
+            self._charging_current_regulation_holdoff_cycles = (
+                CHARGING_POWER_TARGET_REGULATION_HOLDOFF_CYCLES
+            )
+        return raw
+
+    async def async_apply_charging_current_regulation(
+        self,
+        data: dict[str, Any] | None = None,
+    ) -> Optional[int]:
+        """Apply one charging current regulation step and return the written raw value."""
+        if not self._charging_current_regulation_enabled:
+            return None
+
+        target = self._charging_power_target
+        if target is None:
+            return None
+
+        if self._charging_current_regulation_holdoff_cycles > 0:
+            self._charging_current_regulation_holdoff_cycles -= 1
+            LOGGER.debug(
+                "Skipping charging current regulation after target update; %s holdoff cycles left",
+                self._charging_current_regulation_holdoff_cycles,
+            )
+            return None
+
+        source = data if data is not None else self.data
+        if source is None:
+            return None
+
+        raw = regulated_power_current_raw(
+            source,
+            detect_wallbox_model(source.get(KEY_PRODUCT)),
+            self._profile,
+            target,
+        )
+        if raw is None:
+            return None
+
+        LOGGER.debug(
+            "Applying charging current regulation for %.2f kW target as %s mA",
+            target,
+            raw,
+        )
+        await self.async_write_register(WRITE_REGISTER_CHARGING_CURRENT, raw)
+        source[KEY_MAX_CHARGING_CURRENT] = raw
+        return raw
 
     async def async_probe_display_support(self) -> bool:
         """Check display support using the same report-1 logic as the UDP integration."""
@@ -199,7 +300,9 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if key not in detected
             }
             if missing_static:
-                payload.update(await self.hub.async_read_named_registers(missing_static))
+                payload.update(
+                    await self.hub.async_read_named_registers(missing_static)
+                )
                 detected.update(payload)
                 self._update_profile(detected)
 
@@ -214,4 +317,8 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         previous = dict(self.data or {})
         previous.update(payload)
+        try:
+            await self.async_apply_charging_current_regulation(previous)
+        except KebaModbusError as err:
+            LOGGER.debug("Charging current regulation update failed: %s", err)
         return previous

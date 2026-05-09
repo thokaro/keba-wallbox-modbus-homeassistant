@@ -22,12 +22,14 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .const import (
     CABLE_STATE_MAP,
+    CHARGER_STATUS_MAP,
     CHARGING_STATE_MAP,
     FAST_CHARGING_STATE_MAP,
     KebaProfile,
     KEY_ACTIVE_POWER,
     KEY_CABLE_STATE,
     KEY_CHARGING_STATE,
+    KEY_CHARGER_STATUS,
     KEY_CURRENT_L1,
     KEY_CURRENT_L2,
     KEY_CURRENT_L3,
@@ -82,6 +84,19 @@ def _product_attributes(
     if raw is None:
         return None
     return describe_product(raw, coordinator.model_key)
+
+
+def _charger_status(data: Mapping[str, Any]) -> Optional[str]:
+    """Return the EVSE A/B/C status from charging and cable state."""
+    charging_state = data.get(KEY_CHARGING_STATE)
+    if charging_state == 3:
+        return "C"
+
+    cable_state = data.get(KEY_CABLE_STATE)
+    if cable_state is not None:
+        return "B" if cable_state & (1 << 2) else "A"
+
+    return CHARGER_STATUS_MAP.get(charging_state)
 
 
 @dataclass(frozen=True)
@@ -150,6 +165,15 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         icon="mdi:ev-station",
         mapping=CHARGING_STATE_MAP,
     ),
+    KebaSensorDescription(
+        key=KEY_CHARGER_STATUS,
+        name="Charger status",
+        icon="mdi:ev-plug-type2",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        options=tuple(dict.fromkeys(CHARGER_STATUS_MAP.values())),
+        value_fn=lambda _, data: _charger_status(data),
+    ),
     _enum_sensor(
         key=KEY_CABLE_STATE,
         name="Cable state",
@@ -170,7 +194,7 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         device_class=SensorDeviceClass.CURRENT,
         native_unit=UnitOfElectricCurrent.AMPERE,
         scaler=scale_milliamps,
-        precision=1,
+        precision=2,
     ),
     _scaled_sensor(
         key=KEY_CURRENT_L2,
@@ -178,7 +202,7 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         device_class=SensorDeviceClass.CURRENT,
         native_unit=UnitOfElectricCurrent.AMPERE,
         scaler=scale_milliamps,
-        precision=1,
+        precision=2,
     ),
     _scaled_sensor(
         key=KEY_CURRENT_L3,
@@ -186,7 +210,7 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         device_class=SensorDeviceClass.CURRENT,
         native_unit=UnitOfElectricCurrent.AMPERE,
         scaler=scale_milliamps,
-        precision=1,
+        precision=2,
     ),
     _scaled_sensor(
         key=KEY_ACTIVE_POWER,
@@ -261,7 +285,7 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         native_unit=UnitOfElectricCurrent.AMPERE,
         scaler=scale_milliamps,
         state_class=None,
-        precision=1,
+        precision=2,
     ),
     _scaled_sensor(
         key=KEY_MAX_SUPPORTED_CURRENT,
@@ -270,7 +294,7 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         native_unit=UnitOfElectricCurrent.AMPERE,
         scaler=scale_milliamps,
         state_class=None,
-        precision=1,
+        precision=2,
     ),
     _enum_sensor(
         key=KEY_FAST_CHARGING_STATE,

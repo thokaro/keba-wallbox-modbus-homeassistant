@@ -10,14 +10,19 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.exceptions import HomeAssistantError
 
+from .const import WRITE_REGISTER_CHARGING_CURRENT
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import KebaEntity, async_add_description_entities
 from .types import KebaConfigEntry
-from .write_descriptions import KebaNumberDescription, NUMBER_DESCRIPTIONS
+from .write_descriptions import (
+    CHARGING_POWER_KEY,
+    KebaNumberDescription,
+    NUMBER_DESCRIPTIONS,
+)
 
 
 def _format_value(value: float) -> str:
@@ -74,6 +79,9 @@ class KebaNumberEntity(RestoreEntity, KebaEntity, NumberEntity):
             self._restored_native_value = float(state.state)
         except ValueError:
             self._restored_native_value = None
+        else:
+            if self.entity_description.key == CHARGING_POWER_KEY:
+                self.coordinator.set_charging_power_target(self._restored_native_value)
 
     def _fallback_native_value(self) -> Optional[float]:
         """Return the best local fallback value."""
@@ -84,6 +92,9 @@ class KebaNumberEntity(RestoreEntity, KebaEntity, NumberEntity):
     @property
     def native_value(self) -> Optional[float]:
         """Return the current value."""
+        if self.entity_description.key == CHARGING_POWER_KEY:
+            return self.coordinator.charging_power_target or 0.0
+
         if (
             self.entity_description.read_key is not None
             and self.coordinator.data is not None
@@ -120,6 +131,13 @@ class KebaNumberEntity(RestoreEntity, KebaEntity, NumberEntity):
 
         return max(self.native_min_value, dynamic_limit)
 
+    def _schedule_refresh(self) -> None:
+        """Refresh coordinator data without blocking the service response."""
+        self.coordinator.hass.async_create_task(
+            self.coordinator.async_request_refresh(),
+            name=f"keba_wallbox_modbus refresh after {self.entity_description.key} write",
+        )
+
     async def async_set_native_value(self, value: float) -> None:
         """Write a new value to the wallbox."""
         if self.entity_description.validate_fn is not None:
@@ -139,9 +157,21 @@ class KebaNumberEntity(RestoreEntity, KebaEntity, NumberEntity):
                 f"{self.native_unit_of_measurement}"
             )
 
-        await self.coordinator.async_write_register_and_refresh(
+        if self.entity_description.key == CHARGING_POWER_KEY:
+            self.coordinator.set_charging_power_target(value)
+            await self.coordinator.async_apply_charging_power_target(value)
+            self._cached_native_value = value
+            self.async_write_ha_state()
+            self._schedule_refresh()
+            return
+
+        if self.entity_description.register == WRITE_REGISTER_CHARGING_CURRENT:
+            self.coordinator.set_charging_current_regulation_enabled(False)
+
+        await self.coordinator.async_write_register(
             self.entity_description.register,
             self.entity_description.to_raw_fn(self.coordinator, value),
         )
         self._cached_native_value = value
         self.async_write_ha_state()
+        self._schedule_refresh()
