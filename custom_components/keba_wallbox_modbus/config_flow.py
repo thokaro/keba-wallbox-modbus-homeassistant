@@ -26,12 +26,14 @@ from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_UNIT_ID,
     DOMAIN,
+    MIN_SCAN_INTERVAL,
+    UDP_DISPLAY_MAX_DURATION,
+)
+from .decoding import format_serial_number
+from .profiles import detect_wallbox_model, model_name_for_key
+from .registers import (
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
-    UDP_DISPLAY_MAX_DURATION,
-    detect_wallbox_model,
-    format_serial_number,
-    model_name_for_key,
 )
 from .modbus import KebaModbusError, async_probe_device
 
@@ -118,7 +120,7 @@ def _option_schema(defaults: Optional[dict[str, Any]] = None) -> dict[Any, Any]:
             default=values.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(
-                min=5,
+                min=MIN_SCAN_INTERVAL,
                 max=3600,
                 step=1,
                 mode=selector.NumberSelectorMode.BOX,

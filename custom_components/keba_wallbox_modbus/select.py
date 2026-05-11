@@ -77,4 +77,5 @@ class KebaSelectEntity(KebaEntity, SelectEntity):
         await self.coordinator.async_write_register_and_refresh(
             self.entity_description.register,
             self._write_map()[option],
+            refresh_keys=(self.entity_description.read_key,),
         )

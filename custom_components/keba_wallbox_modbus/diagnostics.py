@@ -10,11 +10,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 
-from .const import (
-    CONF_UDP_HOST,
+from .const import CONF_UDP_HOST
+from .decoding import describe_product
+from .registers import (
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
-    describe_product,
 )
 from .coordinator import KebaDataUpdateCoordinator
 

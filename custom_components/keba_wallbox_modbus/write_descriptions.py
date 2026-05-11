@@ -17,8 +17,9 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import (
-    KebaProfile,
+from .decoding import scale_milliamps
+from .profiles import KebaProfile
+from .registers import (
     KEY_FAILSAFE_CURRENT,
     KEY_FAILSAFE_TIMEOUT,
     KEY_MAX_CHARGING_CURRENT,
@@ -27,7 +28,14 @@ from .const import (
     PHASE_SWITCH_STATE_MAP,
     PHASE_SWITCH_STATE_WRITE_MAP,
     WRITE_REGISTER_CHARGING_CURRENT,
-    scale_milliamps,
+    WRITE_REGISTER_FAILSAFE_CURRENT,
+    WRITE_REGISTER_FAILSAFE_PERSIST,
+    WRITE_REGISTER_FAILSAFE_TIMEOUT,
+    WRITE_REGISTER_FAST_CHARGING,
+    WRITE_REGISTER_PHASE_SWITCH_SOURCE,
+    WRITE_REGISTER_PHASE_SWITCH_STATE,
+    WRITE_REGISTER_SESSION_ENERGY_LIMIT,
+    WRITE_REGISTER_UNLOCK_PLUG,
 )
 from .coordinator import KebaDataUpdateCoordinator
 from .power_control import (
@@ -43,6 +51,10 @@ def _is_integer_value(value: float) -> bool:
 
 
 def _is_tenth_amp_value(value: float) -> bool:
+    return (float(value) * 10).is_integer()
+
+
+def _is_tenth_kw_value(value: float) -> bool:
     return (float(value) * 10).is_integer()
 
 
@@ -74,7 +86,7 @@ BUTTON_DESCRIPTIONS: tuple[KebaButtonDescription, ...] = (
         key="unlock_plug",
         name="Unlock plug",
         icon="mdi:lock-open-variant-outline",
-        register=5012,
+        register=WRITE_REGISTER_UNLOCK_PLUG,
         value=0,
         is_supported=lambda coordinator: coordinator.capabilities.supports_unlock_plug,
     ),
@@ -83,7 +95,7 @@ BUTTON_DESCRIPTIONS: tuple[KebaButtonDescription, ...] = (
         name="Persist failsafe settings",
         icon="mdi:content-save-cog-outline",
         entity_category=EntityCategory.CONFIG,
-        register=5020,
+        register=WRITE_REGISTER_FAILSAFE_PERSIST,
         value=1,
         is_supported=lambda coordinator: (
             coordinator.capabilities.supports_failsafe_persist
@@ -93,7 +105,7 @@ BUTTON_DESCRIPTIONS: tuple[KebaButtonDescription, ...] = (
         key="activate_fast_charging",
         name="Activate fast charging",
         icon="mdi:flash",
-        register=5200,
+        register=WRITE_REGISTER_FAST_CHARGING,
         value=1,
         is_supported=lambda coordinator: (
             coordinator.capabilities.supports_fast_charging
@@ -122,7 +134,7 @@ SELECT_DESCRIPTIONS: tuple[KebaSelectDescription, ...] = (
         icon="mdi:swap-horizontal-circle-outline",
         entity_category=EntityCategory.CONFIG,
         options=[],
-        register=5050,
+        register=WRITE_REGISTER_PHASE_SWITCH_SOURCE,
         read_key=KEY_PHASE_SWITCH_SOURCE,
         options_fn=lambda profile: list(profile.phase_switch_source_write_map),
         read_map_fn=lambda profile: profile.phase_switch_source_map,
@@ -134,7 +146,7 @@ SELECT_DESCRIPTIONS: tuple[KebaSelectDescription, ...] = (
         icon="mdi:power-plug-battery",
         entity_category=EntityCategory.CONFIG,
         options=list(PHASE_SWITCH_STATE_WRITE_MAP),
-        register=5052,
+        register=WRITE_REGISTER_PHASE_SWITCH_STATE,
         read_key=KEY_PHASE_SWITCH_STATE,
         read_map=PHASE_SWITCH_STATE_MAP,
         write_map=PHASE_SWITCH_STATE_WRITE_MAP,
@@ -190,12 +202,17 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
         icon="mdi:home-lightning-bolt-outline",
         native_min_value=0,
         native_max_value=43.5,
-        native_step=0.01,
+        native_step=0.1,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         mode=NumberMode.BOX,
         register=WRITE_REGISTER_CHARGING_CURRENT,
         min_value_fn=lambda _: 0.0,
         max_value_fn=_charging_power_max_value,
+        validate_fn=lambda value: (
+            None
+            if _is_tenth_kw_value(value)
+            else "Allowed values are 0.1 kW steps"
+        ),
         optimistic=True,
     ),
     KebaNumberDescription(
@@ -207,7 +224,7 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
         native_step=0.01,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         mode=NumberMode.BOX,
-        register=5010,
+        register=WRITE_REGISTER_SESSION_ENERGY_LIMIT,
         to_raw_fn=lambda _, value: int(round(value * 100)),
         optimistic=True,
     ),
@@ -221,7 +238,7 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
         native_step=0.1,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         mode=NumberMode.SLIDER,
-        register=5016,
+        register=WRITE_REGISTER_FAILSAFE_CURRENT,
         to_raw_fn=lambda _, value: int(round(value * 1000)),
         read_key=KEY_FAILSAFE_CURRENT,
         from_raw_fn=lambda _, raw: scale_milliamps(raw) or 0.0,
@@ -241,7 +258,7 @@ NUMBER_DESCRIPTIONS: tuple[KebaNumberDescription, ...] = (
         native_step=1,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         mode=NumberMode.BOX,
-        register=5018,
+        register=WRITE_REGISTER_FAILSAFE_TIMEOUT,
         to_raw_fn=lambda _, value: int(round(value)),
         read_key=KEY_FAILSAFE_TIMEOUT,
         from_raw_fn=lambda _, raw: float(raw),

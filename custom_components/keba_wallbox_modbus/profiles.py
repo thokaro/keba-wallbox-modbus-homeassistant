@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Mapping, Optional
 
-from .base import (
+from .const import (
     MODEL,
     MODEL_KEY_P30,
     MODEL_KEY_P40,
@@ -19,6 +20,7 @@ from .registers import (
     P40_STATIC_REGISTER_MAP,
     PHASE_SWITCH_SOURCE_MAP_P30,
     PHASE_SWITCH_SOURCE_MAP_P40,
+    SLOW_RUNTIME_REGISTER_KEYS,
 )
 
 
@@ -40,6 +42,24 @@ class KebaProfile:
     def phase_switch_source_write_map(self) -> Mapping[str, int]:
         """Return write values keyed by option label."""
         return {option: raw for raw, option in self.phase_switch_source_map.items()}
+
+    @cached_property
+    def slow_runtime_register_map(self) -> Mapping[str, int]:
+        """Return runtime registers that should be polled less frequently."""
+        return {
+            key: address
+            for key, address in self.runtime_register_map.items()
+            if key in SLOW_RUNTIME_REGISTER_KEYS
+        }
+
+    @cached_property
+    def fast_runtime_register_map(self) -> Mapping[str, int]:
+        """Return runtime registers that should be polled every update interval."""
+        return {
+            key: address
+            for key, address in self.runtime_register_map.items()
+            if key not in self.slow_runtime_register_map
+        }
 
     def supports_key(self, key: str) -> bool:
         """Return whether the profile exposes the given read key."""

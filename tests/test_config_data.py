@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from homeassistant.const import CONF_HOST, CONF_PORT
 
-from custom_components.keba_wallbox_modbus.config_data import split_config
+from custom_components.keba_wallbox_modbus.config_data import option_defaults, split_config
 from custom_components.keba_wallbox_modbus.const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
@@ -13,6 +13,11 @@ from custom_components.keba_wallbox_modbus.const import (
     CONF_UDP_HOST,
     CONF_UNIT_ID,
 )
+
+
+def test_option_defaults_use_15_second_scan_interval() -> None:
+    """New entries default to a 15 second polling interval."""
+    assert option_defaults({})[CONF_SCAN_INTERVAL] == 15
 
 
 def test_split_config_preserves_legacy_effective_values() -> None:

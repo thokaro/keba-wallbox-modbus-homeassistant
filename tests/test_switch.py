@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
+from custom_components.keba_wallbox_modbus.registers import WRITE_REGISTER_CHARGER_ENABLE
 from custom_components.keba_wallbox_modbus.switch import (
     KebaChargerEnableSwitch,
     KebaChargingCurrentRegulationSwitch,
@@ -40,6 +41,28 @@ class FakeCoordinator:
     async def async_write_register(self, address, value):
         """Record a register write."""
         self.writes.append((address, value))
+
+    async def async_write_register_and_refresh(
+        self,
+        address,
+        value,
+        *,
+        refresh_keys=None,
+        assume_values=None,
+        refresh=True,
+        refresh_delay=0,
+        background_refresh=False,
+        refresh_name=None,
+    ):
+        """Record a register write with central refresh behavior."""
+        self.writes.append((address, value))
+        if refresh:
+            target = self.async_request_refresh()
+            if background_refresh:
+                self.hass.async_create_task(target, name=refresh_name)
+            else:
+                await target
+        return True
 
     async def async_apply_charging_current_regulation(self):
         """Record that regulation was applied."""
@@ -106,7 +129,7 @@ async def test_charger_enable_switch_writes_without_waiting_for_refresh() -> Non
     await entity.async_turn_on()
 
     assert entity.is_on
-    assert coordinator.writes == [(5014, 1)]
+    assert coordinator.writes == [(WRITE_REGISTER_CHARGER_ENABLE, 1)]
     await asyncio.gather(*coordinator.hass.tasks)
     assert coordinator.refresh_count == 1
 
@@ -119,6 +142,6 @@ async def test_charger_disable_switch_writes_without_waiting_for_refresh() -> No
     await entity.async_turn_off()
 
     assert entity.is_on is False
-    assert coordinator.writes == [(5014, 0)]
+    assert coordinator.writes == [(WRITE_REGISTER_CHARGER_ENABLE, 0)]
     await asyncio.gather(*coordinator.hass.tasks)
     assert coordinator.refresh_count == 1

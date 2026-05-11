@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Iterable
 from datetime import timedelta
 from functools import partial
 import logging
+from time import monotonic
 from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
@@ -24,22 +27,24 @@ from .const import (
     DEFAULT_DISPLAY_MAX_TIME,
     DEFAULT_DISPLAY_MIN_TIME,
     DEFAULT_UNIT_ID,
+    DOMAIN,
+    SLOW_RUNTIME_POLL_INTERVAL,
+    WRITE_ASSUMPTION_TTL,
+    WRITE_READBACK_RETRY_DELAY,
+)
+from .decoding import format_firmware_version, format_serial_number
+from .display import KebaDisplayClient
+from .modbus import KebaModbusError, KebaModbusHub
+from .power_control import charging_power_current_raw, regulated_power_current_raw
+from .profiles import KebaProfile, detect_wallbox_model, get_wallbox_profile
+from .registers import (
     DISCOVERY_REGISTER_MAP,
     KEY_FIRMWARE_VERSION,
     KEY_MAX_CHARGING_CURRENT,
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
     WRITE_REGISTER_CHARGING_CURRENT,
-    DOMAIN,
-    KebaProfile,
-    detect_wallbox_model,
-    format_firmware_version,
-    format_serial_number,
-    get_wallbox_profile,
 )
-from .display import KebaDisplayClient
-from .modbus import KebaModbusError, KebaModbusHub
-from .power_control import charging_power_current_raw, regulated_power_current_raw
 
 LOGGER = logging.getLogger(__name__)
 
@@ -77,6 +82,10 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._charging_power_target: Optional[float] = None
         self._charging_current_regulation_enabled = False
         self._charging_current_regulation_holdoff_cycles = 0
+        self._last_slow_runtime_poll_at: Optional[float] = None
+        self._write_intent_counter = 0
+        self._write_intents: dict[int, int] = {}
+        self._pending_assumed_values: dict[str, tuple[Any, float]] = {}
 
     @property
     def device_serial(self) -> Optional[str]:
@@ -113,6 +122,25 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _update_profile(self, data: dict[str, Any]) -> None:
         """Refresh the active profile from the current product register."""
         self._profile = get_wallbox_profile(detect_wallbox_model(data.get(KEY_PRODUCT)))
+
+    def _runtime_registers_for_poll(
+        self,
+        current: dict[str, Any],
+    ) -> tuple[dict[str, int], bool]:
+        """Return runtime registers for the next polling pass."""
+        slow_registers = self._profile.slow_runtime_register_map
+        fast_registers = self._profile.fast_runtime_register_map
+
+        now = monotonic()
+        slow_due = (
+            any(key not in current for key in slow_registers)
+            or self._last_slow_runtime_poll_at is None
+            or now - self._last_slow_runtime_poll_at >= SLOW_RUNTIME_POLL_INTERVAL
+        )
+        if slow_due:
+            return {**fast_registers, **slow_registers}, True
+
+        return fast_registers, False
 
     @property
     def firmware_version_raw(self) -> Optional[int]:
@@ -159,6 +187,65 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Enable or disable charging current regulation."""
         self._charging_current_regulation_enabled = enabled
 
+    def assume_register_values(self, values: dict[str, Any]) -> None:
+        """Publish locally known register values before the next Modbus readback."""
+        if not values:
+            return
+
+        if not hasattr(self, "_pending_assumed_values"):
+            self._pending_assumed_values = {}
+        deadline = monotonic() + WRITE_ASSUMPTION_TTL
+        for key, value in values.items():
+            self._pending_assumed_values[key] = (value, deadline)
+
+        self._publish_register_payload(values, protect_pending=False)
+
+    def _apply_pending_assumed_values(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Keep recent write assumptions until the wallbox confirms or they expire."""
+        pending = getattr(self, "_pending_assumed_values", {})
+        if not pending:
+            return payload
+
+        now = monotonic()
+        filtered = dict(payload)
+        for key, (expected, deadline) in list(pending.items()):
+            if now >= deadline:
+                pending.pop(key, None)
+                continue
+
+            if key not in filtered:
+                continue
+
+            if filtered[key] == expected:
+                pending.pop(key, None)
+            else:
+                filtered[key] = expected
+
+        return filtered
+
+    def _publish_register_payload(
+        self,
+        payload: dict[str, Any],
+        *,
+        protect_pending: bool = True,
+    ) -> None:
+        """Merge register values into coordinator data and notify listeners."""
+        values = self._apply_pending_assumed_values(payload) if protect_pending else payload
+        data = dict(self.data or {})
+        data.update(values)
+        self._update_profile(data)
+        self.async_set_updated_data(data)
+
+    @staticmethod
+    def _readback_matches_expected(
+        payload: dict[str, Any],
+        expected_values: dict[str, Any] | None,
+    ) -> bool:
+        """Return whether a readback confirms the expected values."""
+        return expected_values is None or all(
+            payload.get(key) == value for key, value in expected_values.items()
+        )
+
     async def async_shutdown(self) -> None:
         """Close resources held by the coordinator."""
         await self.hub.async_close()
@@ -167,15 +254,161 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Write a KEBA write register."""
         await self.hub.async_write_uint16(address, value)
 
-    async def async_write_register_and_refresh(self, address: int, value: int) -> None:
-        """Write a KEBA register and refresh coordinator data afterwards."""
+    def _write_intent_token(self, address: int) -> int:
+        """Mark a write as the latest intent for one register address."""
+        self._write_intent_counter = getattr(self, "_write_intent_counter", 0) + 1
+        if not hasattr(self, "_write_intents"):
+            self._write_intents = {}
+        self._write_intents[address] = self._write_intent_counter
+        return self._write_intent_counter
+
+    def _is_latest_write_intent(self, address: int, token: int) -> bool:
+        """Return whether a write intent is still current."""
+        return getattr(self, "_write_intents", {}).get(address) == token
+
+    def _clear_write_intent(self, address: int, token: int) -> None:
+        """Clear a completed write intent if it is still current."""
+        if self._is_latest_write_intent(address, token):
+            self._write_intents.pop(address, None)
+
+    async def _async_read_register_keys(
+        self,
+        keys: Iterable[str],
+    ) -> dict[str, Any] | None:
+        """Read selected register keys without publishing coordinator data."""
+        register_map = {
+            **self._profile.static_register_map,
+            **self._profile.runtime_register_map,
+        }
+        registers = {key: register_map[key] for key in keys if key in register_map}
+        if not registers:
+            return None
+
+        try:
+            return await self.hub.async_read_named_registers(
+                registers,
+                optional_keys=frozenset(
+                    key for key in registers if key in self._profile.optional_runtime_keys
+                ),
+            )
+        except KebaModbusError as err:
+            LOGGER.debug("Targeted register refresh failed: %s", err)
+            return None
+
+    async def async_refresh_register_keys(self, keys: Iterable[str]) -> None:
+        """Refresh selected register keys and publish updated coordinator data."""
+        await self._async_read_and_publish_register_keys(keys)
+
+    async def _async_read_and_publish_register_keys(
+        self,
+        keys: Iterable[str],
+        *,
+        expected_values: dict[str, Any] | None = None,
+    ) -> bool | None:
+        """Read selected keys and publish them when the readback is usable."""
+        payload = await self._async_read_register_keys(keys)
+        if payload is None:
+            await self.async_request_refresh()
+            return None
+
+        if not self._readback_matches_expected(payload, expected_values):
+            LOGGER.debug(
+                "Keeping assumed write values because readback is not updated yet: %s",
+                payload,
+            )
+            return False
+
+        self._publish_register_payload(payload)
+        return True
+
+    async def _async_refresh_after_write(
+        self,
+        address: int,
+        token: int,
+        refresh_keys: tuple[str, ...] | None,
+        delay: float,
+        expected_values: dict[str, Any] | None,
+    ) -> None:
+        """Refresh coordinator data after a completed write."""
+        try:
+            if delay > 0:
+                await asyncio.sleep(delay)
+
+            if not self._is_latest_write_intent(address, token):
+                return
+
+            if refresh_keys is None:
+                await self.async_request_refresh()
+                return
+
+            readback_published = await self._async_read_and_publish_register_keys(
+                refresh_keys,
+                expected_values=expected_values,
+            )
+            if readback_published is False:
+                await asyncio.sleep(WRITE_READBACK_RETRY_DELAY)
+                if not self._is_latest_write_intent(address, token):
+                    return
+
+                await self._async_read_and_publish_register_keys(refresh_keys)
+        finally:
+            self._clear_write_intent(address, token)
+
+    async def async_write_register_and_refresh(
+        self,
+        address: int,
+        value: int,
+        *,
+        refresh_keys: Iterable[str] | None = None,
+        assume_values: dict[str, Any] | None = None,
+        refresh: bool = True,
+        refresh_delay: float = 0,
+        background_refresh: bool = False,
+        refresh_name: str | None = None,
+    ) -> bool:
+        """Write a KEBA register and run the latest write's follow-up work."""
+        token = self._write_intent_token(address)
         await self.async_write_register(address, value)
-        await self.async_request_refresh()
+        if not self._is_latest_write_intent(address, token):
+            return False
+
+        if assume_values is not None:
+            self.assume_register_values(assume_values)
+
+        if not refresh:
+            self._clear_write_intent(address, token)
+            return True
+
+        normalized_refresh_keys = (
+            None if refresh_keys is None else tuple(refresh_keys)
+        )
+        refresh_target = self._async_refresh_after_write(
+            address,
+            token,
+            normalized_refresh_keys,
+            refresh_delay,
+            assume_values,
+        )
+        if background_refresh:
+            self.hass.async_create_task(
+                refresh_target,
+                name=refresh_name or f"keba_wallbox_modbus refresh after {address} write",
+            )
+        else:
+            await refresh_target
+
+        return True
 
     async def async_apply_charging_power_target(
         self,
         target_kw: float,
         data: dict[str, Any] | None = None,
+        *,
+        assume_readback: bool = False,
+        refresh_readback: bool = False,
+        refresh_delay: float = 0,
+        background_refresh: bool = False,
+        refresh_name: str | None = None,
     ) -> Optional[int]:
         """Apply the direct current limit for a charging power target."""
         source = data if data is not None else self.data
@@ -190,7 +423,21 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
 
         LOGGER.debug("Applying charging power target %.2f kW as %s mA", target_kw, raw)
-        await self.async_write_register(WRITE_REGISTER_CHARGING_CURRENT, raw)
+        applied = await self.async_write_register_and_refresh(
+            WRITE_REGISTER_CHARGING_CURRENT,
+            raw,
+            assume_values=(
+                {KEY_MAX_CHARGING_CURRENT: raw} if assume_readback else None
+            ),
+            refresh=refresh_readback,
+            refresh_keys=(KEY_MAX_CHARGING_CURRENT,),
+            refresh_delay=refresh_delay,
+            background_refresh=background_refresh,
+            refresh_name=refresh_name,
+        )
+        if not applied:
+            return None
+
         if source is not None:
             source[KEY_MAX_CHARGING_CURRENT] = raw
         if self._charging_current_regulation_enabled:
@@ -237,7 +484,14 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             target,
             raw,
         )
-        await self.async_write_register(WRITE_REGISTER_CHARGING_CURRENT, raw)
+        applied = await self.async_write_register_and_refresh(
+            WRITE_REGISTER_CHARGING_CURRENT,
+            raw,
+            refresh=False,
+        )
+        if not applied:
+            return None
+
         source[KEY_MAX_CHARGING_CURRENT] = raw
         return raw
 
@@ -306,17 +560,20 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 detected.update(payload)
                 self._update_profile(detected)
 
+            runtime_registers, slow_polled = self._runtime_registers_for_poll(detected)
             payload.update(
                 await self.hub.async_read_named_registers(
-                    self._profile.runtime_register_map,
+                    runtime_registers,
                     optional_keys=self._profile.optional_runtime_keys,
                 )
             )
+            if slow_polled:
+                self._last_slow_runtime_poll_at = monotonic()
         except KebaModbusError as err:
             raise UpdateFailed(str(err)) from err
 
         previous = dict(self.data or {})
-        previous.update(payload)
+        previous.update(self._apply_pending_assumed_values(payload))
         try:
             await self.async_apply_charging_current_regulation(previous)
         except KebaModbusError as err:

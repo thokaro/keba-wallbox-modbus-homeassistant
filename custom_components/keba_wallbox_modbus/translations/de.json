@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Konfiguriere die Modbus-TCP-Verbindung zur Wallbox. Optional koennen ein separater Display-UDP-Host und Standard-Displaydauern fuer UDP-Display-Nachrichten gesetzt werden; das ist vor allem fuer P30-Wallboxen mit Display relevant.",
+        "description": "Konfiguriere die Modbus-TCP-Verbindung zur Wallbox. Optional können ein separater Display-UDP-Host und Standard-Displaydauern für UDP-Display-Nachrichten gesetzt werden; das ist vor allem für P30-Wallboxen mit Display relevant.",
         "data": {
           "host": "Host",
           "udp_host": "Display-UDP-Host",
@@ -15,19 +15,19 @@
           "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
         },
         "data_description": {
-          "host": "IP-Adresse oder DNS-Name fuer Modbus TCP.",
-          "udp_host": "Optionale separate IP-Adresse oder DNS-Name fuer UDP-Displaybefehle. Leer lassen, um den Modbus-Host zu verwenden.",
+          "host": "IP-Adresse oder DNS-Name für Modbus TCP.",
+          "udp_host": "Optionale separate IP-Adresse oder DNS-Name für UDP-Displaybefehle. Leer lassen, um den Modbus-Host zu verwenden.",
           "unit_id": "Modbus-Unit-ID zum Lesen und Schreiben der KEBA-Register. Direkter Wallbox-Zugriff verwendet normalerweise 255.",
-          "port": "TCP-Port fuer Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
+          "port": "TCP-Port für Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
           "timeout": "Wie lange Home Assistant auf eine Modbus-Antwort wartet.",
           "scan_interval": "Wie oft Home Assistant die Wallbox abfragt.",
-          "display_min_time": "Standard-Minimaldauer fuer Displaynachrichten ohne eigenen Wert.",
-          "display_max_time": "Standard-Maximaldauer fuer Displaynachrichten ohne eigenen Wert."
+          "display_min_time": "Standard-Minimaldauer für Displaynachrichten ohne eigenen Wert.",
+          "display_max_time": "Standard-Maximaldauer für Displaynachrichten ohne eigenen Wert."
         }
       },
       "reconfigure": {
         "title": "KEBA Wallbox Modbus",
-        "description": "Aktualisiere die Verbindungsdaten. Die Seriennummer der Wallbox wird geprueft, bevor der bestehende Eintrag geaendert wird.",
+        "description": "Aktualisiere die Verbindungsdaten. Die Seriennummer der Wallbox wird geprüft, bevor der bestehende Eintrag geändert wird.",
         "data": {
           "host": "Host",
           "udp_host": "Display-UDP-Host",
@@ -36,17 +36,17 @@
           "timeout": "Timeout (Sekunden)"
         },
         "data_description": {
-          "host": "IP-Adresse oder DNS-Name fuer Modbus TCP.",
-          "udp_host": "Optionale separate IP-Adresse oder DNS-Name fuer UDP-Displaybefehle. Leer lassen, um den Modbus-Host zu verwenden.",
+          "host": "IP-Adresse oder DNS-Name für Modbus TCP.",
+          "udp_host": "Optionale separate IP-Adresse oder DNS-Name für UDP-Displaybefehle. Leer lassen, um den Modbus-Host zu verwenden.",
           "unit_id": "Modbus-Unit-ID zum Lesen und Schreiben der KEBA-Register. Direkter Wallbox-Zugriff verwendet normalerweise 255.",
-          "port": "TCP-Port fuer Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
+          "port": "TCP-Port für Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
           "timeout": "Wie lange Home Assistant auf eine Modbus-Antwort wartet."
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zur Wallbox fehlgeschlagen.",
-      "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht groesser als die Maximaldauer sein.",
+      "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht größer als die Maximaldauer sein.",
       "unknown": "Unerwarteter Fehler."
     },
     "abort": {
@@ -66,14 +66,14 @@
         },
         "data_description": {
           "scan_interval": "Wie oft Home Assistant die Wallbox abfragt.",
-          "display_min_time": "Standard-Minimaldauer fuer Displaynachrichten ohne eigenen Wert.",
-          "display_max_time": "Standard-Maximaldauer fuer Displaynachrichten ohne eigenen Wert."
+          "display_min_time": "Standard-Minimaldauer für Displaynachrichten ohne eigenen Wert.",
+          "display_max_time": "Standard-Maximaldauer für Displaynachrichten ohne eigenen Wert."
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zur Wallbox fehlgeschlagen.",
-      "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht groesser als die Maximaldauer sein.",
+      "invalid_display_duration": "Die Standard-Minimaldauer des Displays darf nicht größer als die Maximaldauer sein.",
       "unknown": "Unerwarteter Fehler."
     }
   },
@@ -125,7 +125,7 @@
         "name": "Ladestromlimit"
       },
       "max_supported_current": {
-        "name": "Maximal unterstuetzter Strom"
+        "name": "Maximal unterstützter Strom"
       },
       "fast_charging_state": {
         "name": "Schnellladestatus"
@@ -137,7 +137,7 @@
         "name": "Firmware-Version"
       },
       "hardware_revision_device": {
-        "name": "Hardware-Revision Geraet"
+        "name": "Hardware-Revision Gerät"
       },
       "hardware_revision_ms10": {
         "name": "Hardware-Revision MS10"

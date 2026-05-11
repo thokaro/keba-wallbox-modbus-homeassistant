@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from custom_components.keba_wallbox_modbus.const import (
+from custom_components.keba_wallbox_modbus.registers import (
     KEY_CABLE_STATE,
     KEY_CHARGER_STATUS,
     KEY_CHARGING_STATE,

@@ -105,7 +105,7 @@ After restarting Home Assistant:
 - `Modbus unit ID`: default `255`; direct KEBA access usually uses `255`, but a Modbus proxy may require a different value
 - `Port`: default `502`
 - `Timeout`: Modbus TCP timeout in seconds
-- `Update interval`: polling interval in seconds, default `30`, minimum `5`
+- `Update interval`: polling interval in seconds, default `15`, minimum `10`
 - `Default display minimum duration`: default `2` seconds, minimum `0`, maximum `10`
 - `Default display maximum duration`: default `10` seconds, minimum `0`, maximum `10`
 
@@ -209,6 +209,24 @@ When migrating automations from the old notify service behavior, move custom dis
 
 ---
 
+## 🔌 Wallbox Modbus And Feature Requirements
+
+Modbus TCP must be enabled on the wallbox before this integration can connect to it. The default Modbus TCP port is `502`, and direct KEBA access usually uses Modbus unit ID `255`.
+
+### P30
+
+For phase switching, the KEBA phase switch (`KeContact S10`) is required. Switching control via Modbus must also be enabled in the wallbox settings.
+
+### P40
+
+The following settings must be enabled with the KEBA eMobility App:
+
+- Enable Modbus: The `Enable` and `Enable RFID` options must be activated in the `Modbus` settings.
+- To use RFID cards, enable `Authorization` under `Device`.
+- For phase switching, firmware version `1.3.0` or newer is required. In the `Photovoltaic Optimized Charging` settings, phase switching must be enabled and `Communication channel` must be set to `Modbus`.
+
+---
+
 ## 📝 Important Notes
 
 - Some KEBA registers depend on wallbox model, firmware and licensed feature set.
@@ -221,13 +239,16 @@ When migrating automations from the old notify service behavior, move custom dis
 - `Failsafe current` accepts `0` A or `6` to `32` A in 0.1 A steps. `0` A suspends charging when failsafe mode becomes active.
 - `Failsafe timeout` accepts `0` s or `5` to `600` s. `0` deactivates failsafe mode.
 - `Persist failsafe settings` exists only on `P30` and writes the current failsafe configuration to the wallbox EEPROM.
-- `Failsafe` activates only after a timeout value greater than `0` is written. Every received Modbus command resets the internal timeout timer.
+- `Failsafe` activates only after a timeout value greater than `0` is written. Every received Modbus command resets the internal timeout timer, so a timeout at or below the configured `Update interval` may never elapse while Home Assistant is polling the wallbox. Use a timeout clearly above the update interval if Home Assistant should keep polling.
 - On `P30`, disabling a previously persisted failsafe requires writing timeout `0` to register `5018` (`Failsafe timeout`) and then persisting again with register `5020` (`Failsafe Persist`) set to `1`.
 - `Charging power` is the desired active charging power in kW. It is stored as an optimistic target and immediately writes one calculated charging-current limit to register `5004` (`Set charging current`).
 - Writing `Charging current limit` manually is treated as a direct current override. Writable current values are adjustable only in 0.1 A steps.
+- After writing a value with a matching read register, the integration publishes the requested value immediately and then performs a targeted readback of only the affected register. This keeps the Home Assistant UI responsive without waiting for the next full update cycle.
+- KEBA wallboxes may briefly return the previous value after a successful write. During this readback window, stale values from targeted readbacks or normal polling are ignored for the affected register until the wallbox confirms the requested value.
+- If the wallbox does not confirm the requested value within 30 seconds, the protection expires and the next real readback is shown. This avoids hiding rejected commands, unsupported values or wallbox-side rounding permanently.
 - The integration allows `0` as a charging-current target on both `P30` and `P40`, so charging can be suspended directly via `Charging current limit`.
 - When the wallbox is disabled, KEBA may report `0` via read register `1100` (`Max charging current`) even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` value instead of showing `0`.
-- The switch key was renamed from `charging_enabled` to `charger_enable`. Existing entity IDs, dashboards or automations may therefore need to be adjusted after upgrading.
+- Runtime polling is tiered: fast-changing values are read every configured `Update interval`, while slower runtime/configuration values such as total energy, maximum supported current, phase-switch state/source and failsafe settings are read on startup and then every 300 seconds.
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` (`Total energy`) and `1502` (`Charged energy`) report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
 - The display `notify` entity and its device-specific `display_message` action are only usable when display support is detected.

@@ -20,12 +20,22 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import (
+from .decoding import (
+    describe_product,
+    format_firmware_version,
+    format_serial_number,
+    scale_energy_to_kwh,
+    scale_milliamps,
+    scale_milliwatts,
+    scale_tenth_percent,
+    scale_volts,
+)
+from .profiles import KebaProfile
+from .registers import (
     CABLE_STATE_MAP,
     CHARGER_STATUS_MAP,
     CHARGING_STATE_MAP,
     FAST_CHARGING_STATE_MAP,
-    KebaProfile,
     KEY_ACTIVE_POWER,
     KEY_CABLE_STATE,
     KEY_CHARGING_STATE,
@@ -48,14 +58,6 @@ from .const import (
     KEY_VOLTAGE_L1,
     KEY_VOLTAGE_L2,
     KEY_VOLTAGE_L3,
-    describe_product,
-    format_firmware_version,
-    format_serial_number,
-    scale_energy_to_kwh,
-    scale_milliamps,
-    scale_milliwatts,
-    scale_tenth_percent,
-    scale_volts,
 )
 from .coordinator import KebaDataUpdateCoordinator
 

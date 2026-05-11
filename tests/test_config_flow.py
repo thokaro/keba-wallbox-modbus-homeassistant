@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.keba_wallbox_modbus.config_flow import _option_schema
 from custom_components.keba_wallbox_modbus.const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
@@ -18,9 +19,9 @@ from custom_components.keba_wallbox_modbus.const import (
     CONF_UDP_HOST,
     CONF_UNIT_ID,
     DOMAIN,
-    KEY_PRODUCT,
-    KEY_SERIAL_NUMBER,
+    MIN_SCAN_INTERVAL,
 )
+from custom_components.keba_wallbox_modbus.registers import KEY_PRODUCT, KEY_SERIAL_NUMBER
 
 SERIAL = "12345678"
 
@@ -41,6 +42,17 @@ PROBE_RESULT = {
     KEY_SERIAL_NUMBER: int(SERIAL),
     KEY_PRODUCT: 312110,
 }
+
+
+def test_options_schema_uses_minimum_scan_interval() -> None:
+    """The options flow enforces the documented minimum scan interval."""
+    selector = next(
+        selector
+        for key, selector in _option_schema().items()
+        if getattr(key, "schema", None) == CONF_SCAN_INTERVAL
+    )
+
+    assert selector.config["min"] == MIN_SCAN_INTERVAL
 
 
 async def test_user_flow_stores_connection_data_and_options(

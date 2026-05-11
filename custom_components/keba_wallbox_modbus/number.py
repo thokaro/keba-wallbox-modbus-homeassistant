@@ -14,9 +14,10 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import WRITE_REGISTER_CHARGING_CURRENT
+from .const import WRITE_READBACK_DELAY
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import KebaEntity, async_add_description_entities
+from .registers import KEY_MAX_CHARGING_CURRENT, WRITE_REGISTER_CHARGING_CURRENT
 from .types import KebaConfigEntry
 from .write_descriptions import (
     CHARGING_POWER_KEY,
@@ -131,12 +132,26 @@ class KebaNumberEntity(RestoreEntity, KebaEntity, NumberEntity):
 
         return max(self.native_min_value, dynamic_limit)
 
-    def _schedule_refresh(self) -> None:
-        """Refresh coordinator data without blocking the service response."""
-        self.coordinator.hass.async_create_task(
-            self.coordinator.async_request_refresh(),
-            name=f"keba_wallbox_modbus refresh after {self.entity_description.key} write",
-        )
+    def _readback_keys(self) -> tuple[str, ...] | None:
+        """Return the register keys that can confirm the last write."""
+        if self.entity_description.key == CHARGING_POWER_KEY:
+            return (KEY_MAX_CHARGING_CURRENT,)
+
+        if self.entity_description.read_key is not None:
+            return (self.entity_description.read_key,)
+
+        return None
+
+    def _assume_values(self, raw_value: int) -> dict[str, int] | None:
+        """Return coordinator data that can be assumed after a successful write."""
+        readback_keys = self._readback_keys()
+        if readback_keys is None or len(readback_keys) != 1:
+            return None
+        return {readback_keys[0]: raw_value}
+
+    def _refresh_name(self) -> str:
+        """Return a stable background task name for write follow-up work."""
+        return f"keba_wallbox_modbus refresh after {self.entity_description.key} write"
 
     async def async_set_native_value(self, value: float) -> None:
         """Write a new value to the wallbox."""
@@ -159,19 +174,37 @@ class KebaNumberEntity(RestoreEntity, KebaEntity, NumberEntity):
 
         if self.entity_description.key == CHARGING_POWER_KEY:
             self.coordinator.set_charging_power_target(value)
-            await self.coordinator.async_apply_charging_power_target(value)
+            raw = await self.coordinator.async_apply_charging_power_target(
+                value,
+                assume_readback=True,
+                refresh_readback=True,
+                refresh_delay=WRITE_READBACK_DELAY,
+                background_refresh=True,
+                refresh_name=self._refresh_name(),
+            )
+            if raw is None:
+                return
+
             self._cached_native_value = value
             self.async_write_ha_state()
-            self._schedule_refresh()
             return
 
         if self.entity_description.register == WRITE_REGISTER_CHARGING_CURRENT:
             self.coordinator.set_charging_current_regulation_enabled(False)
 
-        await self.coordinator.async_write_register(
+        raw = self.entity_description.to_raw_fn(self.coordinator, value)
+        readback_keys = self._readback_keys()
+        applied = await self.coordinator.async_write_register_and_refresh(
             self.entity_description.register,
-            self.entity_description.to_raw_fn(self.coordinator, value),
+            raw,
+            assume_values=self._assume_values(raw),
+            refresh_keys=readback_keys,
+            refresh_delay=WRITE_READBACK_DELAY if readback_keys is not None else 0,
+            background_refresh=True,
+            refresh_name=self._refresh_name(),
         )
+        if not applied:
+            return
+
         self._cached_native_value = value
         self.async_write_ha_state()
-        self._schedule_refresh()

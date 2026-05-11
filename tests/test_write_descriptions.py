@@ -26,7 +26,10 @@ def test_charging_power_is_available_as_target() -> None:
     description = _number_description("charging_power")
 
     assert description.name == "Charging power"
-    assert description.native_step == 0.01
+    assert description.native_step == 0.1
+    assert description.validate_fn is not None
+    assert description.validate_fn(4.2) is None
+    assert description.validate_fn(4.25) == "Allowed values are 0.1 kW steps"
     assert description.optimistic
 
 

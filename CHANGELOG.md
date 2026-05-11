@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.5.0b5 - 2026-05-11
+
+- Improved Modbus timing behavior to better follow KEBA recommendations: writes are throttled to at least 5 seconds, the first pending write is sent immediately when possible, and repeated writes to the same register are coalesced to the newest value.
+- Added targeted readback handling after writable entity changes. Home Assistant now publishes the requested value immediately, ignores short-lived stale readbacks for the affected register, and falls back to the real wallbox value if the requested value is not confirmed within 30 seconds.
+- Reduced regular Modbus load with tiered runtime polling: fast-changing runtime values are read every update interval, while slower runtime/configuration values are read on startup and then every 300 seconds.
+- Increased the minimum update interval to 10 seconds while keeping the default at 15 seconds.
+- Refactored constants, register definitions, profile metadata, and centralized write/readback coordination for a leaner integration structure.
+- Updated README documentation for Modbus prerequisites, P30/P40 feature requirements, update intervals, and readback behavior.
+- Updated German translations to use real umlauts.
+- Added and updated focused tests for Modbus write coalescing, targeted readback behavior, polling tiers, writable entities, configuration data, and entity descriptions.
+
 ## 2026.5.0b4 - 2026-05-09
 
 - Added a diagnostic `Charger status` sensor exposing evcc-compatible `A`, `B`, and `C` states derived from KEBA charging and cable state.

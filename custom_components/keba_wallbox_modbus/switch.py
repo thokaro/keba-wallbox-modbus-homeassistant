@@ -12,6 +12,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .coordinator import KebaDataUpdateCoordinator
 from .entity import KebaEntity
+from .registers import WRITE_REGISTER_CHARGER_ENABLE
 from .types import KebaConfigEntry
 
 
@@ -58,17 +59,25 @@ class KebaChargerEnableSwitch(RestoreEntity, KebaEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Enable the wallbox."""
-        await self.coordinator.async_write_register(5014, 1)
+        await self.coordinator.async_write_register_and_refresh(
+            WRITE_REGISTER_CHARGER_ENABLE,
+            1,
+            background_refresh=True,
+            refresh_name="keba_wallbox_modbus refresh after charger_enable switch write",
+        )
         self._is_on = True
         self.async_write_ha_state()
-        _schedule_refresh(self.coordinator, "charger_enable")
 
     async def async_turn_off(self, **kwargs) -> None:
         """Disable the wallbox."""
-        await self.coordinator.async_write_register(5014, 0)
+        await self.coordinator.async_write_register_and_refresh(
+            WRITE_REGISTER_CHARGER_ENABLE,
+            0,
+            background_refresh=True,
+            refresh_name="keba_wallbox_modbus refresh after charger_enable switch write",
+        )
         self._is_on = False
         self.async_write_ha_state()
-        _schedule_refresh(self.coordinator, "charger_enable")
 
 
 class KebaChargingCurrentRegulationSwitch(RestoreEntity, KebaEntity, SwitchEntity):

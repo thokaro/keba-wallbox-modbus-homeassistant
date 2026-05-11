@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Optional
 
-from .base import MODEL_KEY_P40
+from .const import MODEL_KEY_P40
 from .decoding import scale_milliamps, scale_milliwatts
 from .profiles import KebaProfile
 from .registers import (

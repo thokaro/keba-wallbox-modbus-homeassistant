@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Mapping, Optional
 
-from .base import MODEL_KEY_P30, MODEL_KEY_P40
+from .const import MODEL_KEY_P30, MODEL_KEY_P40
 from .profiles import model_name_for_key
 
 P30_PRODUCT_CONNECTOR_MAP = {
