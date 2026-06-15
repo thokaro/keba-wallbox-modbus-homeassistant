@@ -10,6 +10,7 @@ from .const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
@@ -19,6 +20,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIMEOUT,
     DEFAULT_UNIT_ID,
+    SLOW_RUNTIME_POLL_INTERVAL,
 )
 
 CONNECTION_KEYS = (
@@ -30,6 +32,7 @@ CONNECTION_KEYS = (
 )
 OPTION_KEYS = (
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_DISPLAY_MIN_TIME,
     CONF_DISPLAY_MAX_TIME,
 )
@@ -53,6 +56,9 @@ def option_defaults(values: dict[str, Any] | None = None) -> dict[str, Any]:
     stored = values or {}
     return {
         CONF_SCAN_INTERVAL: int(stored.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
+        CONF_SLOW_RUNTIME_POLL_INTERVAL: int(
+            stored.get(CONF_SLOW_RUNTIME_POLL_INTERVAL, SLOW_RUNTIME_POLL_INTERVAL)
+        ),
         CONF_DISPLAY_MIN_TIME: int(
             stored.get(CONF_DISPLAY_MIN_TIME, DEFAULT_DISPLAY_MIN_TIME)
         ),

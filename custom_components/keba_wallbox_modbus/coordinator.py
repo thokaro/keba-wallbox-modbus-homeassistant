@@ -21,6 +21,7 @@ from .const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
@@ -132,10 +133,14 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         fast_registers = self._profile.fast_runtime_register_map
 
         now = monotonic()
+        slow_poll_interval = getattr(self, "_config", {}).get(
+            CONF_SLOW_RUNTIME_POLL_INTERVAL,
+            SLOW_RUNTIME_POLL_INTERVAL,
+        )
         slow_due = (
             any(key not in current for key in slow_registers)
             or self._last_slow_runtime_poll_at is None
-            or now - self._last_slow_runtime_poll_at >= SLOW_RUNTIME_POLL_INTERVAL
+            or now - self._last_slow_runtime_poll_at >= slow_poll_interval
         )
         if slow_due:
             return {**fast_registers, **slow_registers}, True

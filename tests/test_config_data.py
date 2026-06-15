@@ -9,15 +9,25 @@ from custom_components.keba_wallbox_modbus.const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
+    SLOW_RUNTIME_POLL_INTERVAL,
 )
 
 
 def test_option_defaults_use_15_second_scan_interval() -> None:
     """New entries default to a 15 second polling interval."""
     assert option_defaults({})[CONF_SCAN_INTERVAL] == 15
+
+
+def test_option_defaults_use_300_second_slow_poll_interval() -> None:
+    """New entries keep the existing slow runtime polling interval."""
+    assert (
+        option_defaults({})[CONF_SLOW_RUNTIME_POLL_INTERVAL]
+        == SLOW_RUNTIME_POLL_INTERVAL
+    )
 
 
 def test_split_config_preserves_legacy_effective_values() -> None:
@@ -49,6 +59,7 @@ def test_split_config_preserves_legacy_effective_values() -> None:
     }
     assert options == {
         CONF_SCAN_INTERVAL: 60,
+        CONF_SLOW_RUNTIME_POLL_INTERVAL: SLOW_RUNTIME_POLL_INTERVAL,
         CONF_DISPLAY_MIN_TIME: 1,
         CONF_DISPLAY_MAX_TIME: 10,
     }

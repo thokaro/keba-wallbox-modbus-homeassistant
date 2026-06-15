@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.6.0b1 - 2026-06-15
+
+- Added a configurable slow runtime polling interval for slower runtime/configuration values such as total energy, maximum supported current, phase-switch state/source and failsafe settings. The default remains 300 seconds.
+- Updated options flow labels and descriptions for the slow runtime polling interval in English and German.
+- Changed the phase-switch state select to expose numeric states `1` and `3` for better compatibility with external consumers such as evcc.
+- Kept legacy phase-switch write labels `1 phase` and `3 phases` as accepted aliases.
+- Updated README documentation for configurable slow runtime polling.
+- Added focused tests for slow runtime polling options and numeric phase-switch select states.
+
 ## 2026.5.0b5 - 2026-05-11
 
 - Improved Modbus timing behavior to better follow KEBA recommendations: writes are throttled to at least 5 seconds, the first pending write is sent immediately when possible, and repeated writes to the same register are coalesced to the newest value.

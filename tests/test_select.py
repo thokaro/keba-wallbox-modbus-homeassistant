@@ -36,12 +36,37 @@ def _select_description(key: str):
     )
 
 
-async def test_select_write_refreshes_only_readback_key() -> None:
-    """Select writes request a targeted refresh for their readback register."""
-    coordinator = FakeCoordinator()
+def _phase_switch_state_entity(coordinator: FakeCoordinator) -> KebaSelectEntity:
     entity = KebaSelectEntity.__new__(KebaSelectEntity)
     entity.coordinator = coordinator
     entity.entity_description = _select_description("phase_switch_state")
+    return entity
+
+
+def test_phase_switch_state_publishes_numeric_state() -> None:
+    """Phase switch state is exposed as a numeric select state."""
+    coordinator = FakeCoordinator()
+    entity = _phase_switch_state_entity(coordinator)
+
+    assert entity.current_option == "1"
+
+
+async def test_phase_switch_state_writes_numeric_option() -> None:
+    """Phase switch state writes accept numeric select options."""
+    coordinator = FakeCoordinator()
+    entity = _phase_switch_state_entity(coordinator)
+
+    await entity.async_select_option("3")
+
+    assert coordinator.writes == [
+        (WRITE_REGISTER_PHASE_SWITCH_STATE, 1, (KEY_PHASE_SWITCH_STATE,))
+    ]
+
+
+async def test_phase_switch_state_writes_legacy_option_alias() -> None:
+    """Phase switch state writes keep accepting the old option labels."""
+    coordinator = FakeCoordinator()
+    entity = _phase_switch_state_entity(coordinator)
 
     await entity.async_select_option("3 phases")
 

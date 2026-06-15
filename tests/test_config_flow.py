@@ -15,6 +15,7 @@ from custom_components.keba_wallbox_modbus.const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
@@ -34,6 +35,7 @@ CONNECTION_INPUT = {
 }
 OPTION_INPUT = {
     CONF_SCAN_INTERVAL: 30,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL: 300,
     CONF_DISPLAY_MIN_TIME: 2,
     CONF_DISPLAY_MAX_TIME: 10,
 }
@@ -53,6 +55,18 @@ def test_options_schema_uses_minimum_scan_interval() -> None:
     )
 
     assert selector.config["min"] == MIN_SCAN_INTERVAL
+
+
+def test_options_schema_exposes_slow_runtime_poll_interval() -> None:
+    """The options flow exposes the slow runtime polling interval."""
+    selector = next(
+        selector
+        for key, selector in _option_schema().items()
+        if getattr(key, "schema", None) == CONF_SLOW_RUNTIME_POLL_INTERVAL
+    )
+
+    assert selector.config["min"] == MIN_SCAN_INTERVAL
+    assert selector.config["max"] == 3600
 
 
 async def test_user_flow_stores_connection_data_and_options(
@@ -96,6 +110,7 @@ async def test_options_flow_updates_only_runtime_options(
 
     options = {
         CONF_SCAN_INTERVAL: 45,
+        CONF_SLOW_RUNTIME_POLL_INTERVAL: 60,
         CONF_DISPLAY_MIN_TIME: 1,
         CONF_DISPLAY_MAX_TIME: 8,
     }

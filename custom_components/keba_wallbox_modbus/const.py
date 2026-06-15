@@ -26,6 +26,7 @@ DEFAULT_DISPLAY_MAX_TIME = 10
 CONF_DISPLAY_MAX_TIME = "display_max_time"
 CONF_DISPLAY_MIN_TIME = "display_min_time"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_SLOW_RUNTIME_POLL_INTERVAL = "slow_runtime_poll_interval"
 CONF_TIMEOUT = "timeout"
 CONF_UDP_HOST = "udp_host"
 CONF_UNIT_ID = "unit_id"
@@ -50,6 +51,7 @@ __all__ = [
     "CONF_DISPLAY_MAX_TIME",
     "CONF_DISPLAY_MIN_TIME",
     "CONF_SCAN_INTERVAL",
+    "CONF_SLOW_RUNTIME_POLL_INTERVAL",
     "CONF_TIMEOUT",
     "CONF_UNIT_ID",
     "CONF_UDP_HOST",

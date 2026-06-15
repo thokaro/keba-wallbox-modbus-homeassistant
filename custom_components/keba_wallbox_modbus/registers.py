@@ -143,11 +143,13 @@ PHASE_SWITCH_SOURCE_MAP_P40: dict[int, str] = {
 }
 
 PHASE_SWITCH_STATE_MAP: dict[int, str] = {
-    1: "1 phase",
-    3: "3 phases",
+    1: "1",
+    3: "3",
 }
 
 PHASE_SWITCH_STATE_WRITE_MAP: dict[str, int] = {
+    "1": 0,
+    "3": 1,
     "1 phase": 0,
     "3 phases": 1,
 }

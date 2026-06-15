@@ -16,6 +16,7 @@ from .const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
@@ -27,6 +28,7 @@ from .const import (
     DEFAULT_UNIT_ID,
     DOMAIN,
     MIN_SCAN_INTERVAL,
+    SLOW_RUNTIME_POLL_INTERVAL,
     UDP_DISPLAY_MAX_DURATION,
 )
 from .decoding import format_serial_number
@@ -56,6 +58,9 @@ def _normalize_option_input(user_input: dict[str, Any]) -> dict[str, Any]:
     """Normalize option selector output before storing it."""
     return {
         CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+        CONF_SLOW_RUNTIME_POLL_INTERVAL: int(
+            user_input[CONF_SLOW_RUNTIME_POLL_INTERVAL]
+        ),
         CONF_DISPLAY_MIN_TIME: int(user_input[CONF_DISPLAY_MIN_TIME]),
         CONF_DISPLAY_MAX_TIME: int(user_input[CONF_DISPLAY_MAX_TIME]),
     }
@@ -118,6 +123,20 @@ def _option_schema(defaults: Optional[dict[str, Any]] = None) -> dict[Any, Any]:
         vol.Required(
             CONF_SCAN_INTERVAL,
             default=values.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=MIN_SCAN_INTERVAL,
+                max=3600,
+                step=1,
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        ),
+        vol.Required(
+            CONF_SLOW_RUNTIME_POLL_INTERVAL,
+            default=values.get(
+                CONF_SLOW_RUNTIME_POLL_INTERVAL,
+                SLOW_RUNTIME_POLL_INTERVAL,
+            ),
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(
                 min=MIN_SCAN_INTERVAL,

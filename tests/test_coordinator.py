@@ -6,6 +6,7 @@ import asyncio
 
 from custom_components.keba_wallbox_modbus import coordinator as coordinator_module
 from custom_components.keba_wallbox_modbus.const import (
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     SLOW_RUNTIME_POLL_INTERVAL,
     WRITE_ASSUMPTION_TTL,
     WRITE_READBACK_RETRY_DELAY,
@@ -355,6 +356,22 @@ def test_runtime_poll_rechecks_slow_registers_after_interval(monkeypatch) -> Non
     assert slow_polled
     assert KEY_TOTAL_ENERGY in registers
     assert KEY_MAX_SUPPORTED_CURRENT in registers
+
+
+def test_runtime_poll_uses_configured_slow_interval(monkeypatch) -> None:
+    """Slow runtime registers use the configured interval."""
+    coordinator = KebaDataUpdateCoordinator.__new__(KebaDataUpdateCoordinator)
+    coordinator._profile = P30_PROFILE
+    coordinator._config = {CONF_SLOW_RUNTIME_POLL_INTERVAL: 30}
+    coordinator._last_slow_runtime_poll_at = 100.0
+    monkeypatch.setattr(coordinator_module, "monotonic", lambda: 130.0)
+
+    registers, slow_polled = coordinator._runtime_registers_for_poll(
+        {key: 1 for key in P30_PROFILE.runtime_register_map}
+    )
+
+    assert slow_polled
+    assert KEY_TOTAL_ENERGY in registers
 
 
 async def test_charging_power_target_write_skips_next_enabled_regulation() -> None:

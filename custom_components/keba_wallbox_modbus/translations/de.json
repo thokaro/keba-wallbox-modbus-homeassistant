@@ -11,6 +11,7 @@
           "port": "Port",
           "timeout": "Timeout (Sekunden)",
           "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "slow_runtime_poll_interval": "Abfrageintervall langsamer Werte (Sekunden)",
           "display_min_time": "Standard-Minimaldauer Display (Sekunden)",
           "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
         },
@@ -21,6 +22,7 @@
           "port": "TCP-Port für Modbus TCP. KEBA-Wallboxen verwenden normalerweise 502.",
           "timeout": "Wie lange Home Assistant auf eine Modbus-Antwort wartet.",
           "scan_interval": "Wie oft Home Assistant die Wallbox abfragt.",
+          "slow_runtime_poll_interval": "Wie oft langsamere Laufzeit- und Konfigurationswerte wie Gesamtenergie, Phasenumschaltung und Failsafe-Einstellungen abgefragt werden.",
           "display_min_time": "Standard-Minimaldauer für Displaynachrichten ohne eigenen Wert.",
           "display_max_time": "Standard-Maximaldauer für Displaynachrichten ohne eigenen Wert."
         }
@@ -61,11 +63,13 @@
         "description": "Passe Polling- und Standard-Displaydauer-Einstellungen an.",
         "data": {
           "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "slow_runtime_poll_interval": "Abfrageintervall langsamer Werte (Sekunden)",
           "display_min_time": "Standard-Minimaldauer Display (Sekunden)",
           "display_max_time": "Standard-Maximaldauer Display (Sekunden)"
         },
         "data_description": {
           "scan_interval": "Wie oft Home Assistant die Wallbox abfragt.",
+          "slow_runtime_poll_interval": "Wie oft langsamere Laufzeit- und Konfigurationswerte wie Gesamtenergie, Phasenumschaltung und Failsafe-Einstellungen abgefragt werden.",
           "display_min_time": "Standard-Minimaldauer für Displaynachrichten ohne eigenen Wert.",
           "display_max_time": "Standard-Maximaldauer für Displaynachrichten ohne eigenen Wert."
         }

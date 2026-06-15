@@ -11,10 +11,12 @@ from custom_components.keba_wallbox_modbus.const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
     CONF_SCAN_INTERVAL,
+    CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
     CONF_UDP_HOST,
     CONF_UNIT_ID,
     DOMAIN,
+    SLOW_RUNTIME_POLL_INTERVAL,
 )
 
 
@@ -54,6 +56,7 @@ async def test_migrate_entry_splits_legacy_data_and_options(
     }
     assert entry.options == {
         CONF_SCAN_INTERVAL: 60,
+        CONF_SLOW_RUNTIME_POLL_INTERVAL: SLOW_RUNTIME_POLL_INTERVAL,
         CONF_DISPLAY_MIN_TIME: 2,
         CONF_DISPLAY_MAX_TIME: 10,
     }
