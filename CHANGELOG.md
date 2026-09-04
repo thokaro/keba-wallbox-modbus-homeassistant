@@ -1,12 +1,19 @@
 # Changelog
 
+## 2026.9.0 - 2026-09-04
+
+- Released the integration as stable and removed the beta notices from the documentation.
+- Added a diagnostic phase-switch state sensor exposing the numeric states `1` and `3`.
+- Moved phase-switch state polling to the regular update interval so state changes are reflected promptly.
+- Changed enum sensors to become unavailable for unknown raw values instead of exposing synthetic `unknown (<value>)` states.
+- Updated the English and German polling descriptions and added focused tests for phase-switch state polling and sensor behavior.
+
 ## 2026.6.0b1 - 2026-06-15
 
-- Added a configurable slow runtime polling interval for slower runtime/configuration values such as total energy, maximum supported current, phase-switch state/source and failsafe settings. The default remains 300 seconds.
+- Added a configurable slow runtime polling interval for slower runtime/configuration values such as total energy, maximum supported current, phase-switch source and failsafe settings. The default remains 300 seconds.
 - Updated options flow labels and descriptions for the slow runtime polling interval in English and German.
 - Changed the phase-switch state select to expose numeric states `1` and `3` for better compatibility with external consumers such as evcc.
 - Kept legacy phase-switch write labels `1 phase` and `3 phases` as accepted aliases.
-- Updated README documentation for configurable slow runtime polling.
 - Added focused tests for slow runtime polling options and numeric phase-switch select states.
 
 ## 2026.5.0b5 - 2026-05-11

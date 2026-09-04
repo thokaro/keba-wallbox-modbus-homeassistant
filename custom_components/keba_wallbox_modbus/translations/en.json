@@ -22,7 +22,7 @@
           "port": "TCP port for Modbus TCP. KEBA wallboxes usually use 502.",
           "timeout": "How long Home Assistant waits for each Modbus response.",
           "scan_interval": "How often Home Assistant polls the wallbox.",
-          "slow_runtime_poll_interval": "How often slower runtime and configuration values such as total energy, phase switch state and failsafe settings are polled.",
+          "slow_runtime_poll_interval": "How often slower runtime and configuration values such as total energy, phase switch source and failsafe settings are polled.",
           "display_min_time": "Default minimum duration for display messages sent without a custom value.",
           "display_max_time": "Default maximum duration for display messages sent without a custom value."
         }
@@ -69,7 +69,7 @@
         },
         "data_description": {
           "scan_interval": "How often Home Assistant polls the wallbox.",
-          "slow_runtime_poll_interval": "How often slower runtime and configuration values such as total energy, phase switch state and failsafe settings are polled.",
+          "slow_runtime_poll_interval": "How often slower runtime and configuration values such as total energy, phase switch source and failsafe settings are polled.",
           "display_min_time": "Default minimum duration for display messages sent without a custom value.",
           "display_max_time": "Default maximum duration for display messages sent without a custom value."
         }

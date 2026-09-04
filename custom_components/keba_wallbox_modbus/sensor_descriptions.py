@@ -50,6 +50,8 @@ from .registers import (
     KEY_HARDWARE_REVISION_MS10,
     KEY_MAX_CHARGING_CURRENT,
     KEY_MAX_SUPPORTED_CURRENT,
+    KEY_PHASE_SWITCH_STATE,
+    PHASE_SWITCH_STATE_MAP,
     KEY_POWER_FACTOR,
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
@@ -68,7 +70,7 @@ def _enum_value(
     raw = data.get(key)
     if raw is None:
         return None
-    return mapping.get(raw, f"unknown ({raw})")
+    return mapping.get(raw)
 
 
 def _error_attributes(data: Mapping[str, Any]) -> Optional[Dict[str, str]]:
@@ -297,6 +299,19 @@ SENSOR_DESCRIPTIONS: tuple[KebaSensorDescription, ...] = (
         scaler=scale_milliamps,
         state_class=None,
         precision=2,
+    ),
+    KebaSensorDescription(
+        key=KEY_PHASE_SWITCH_STATE,
+        name="Phase switch state",
+        icon="mdi:power-plug-battery",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        options=tuple(PHASE_SWITCH_STATE_MAP.values()),
+        value_fn=lambda _, data: _enum_value(
+            data,
+            KEY_PHASE_SWITCH_STATE,
+            PHASE_SWITCH_STATE_MAP,
+        ),
     ),
     _enum_sensor(
         key=KEY_FAST_CHARGING_STATE,

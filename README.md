@@ -9,9 +9,6 @@
 
 This custom integration connects **KEBA KeContact P30 and P40** wallboxes to **Home Assistant** via **Modbus TCP**.
 
-> [!NOTE]
-> This integration is currently in **beta**. `P40` support is implemented, but I could not test it with a real `P40` wallbox yet. Feedback, test results and issue reports are very welcome.
-
 ---
 
 ## ✨ Features
@@ -248,7 +245,7 @@ The following settings must be enabled with the KEBA eMobility App:
 - If the wallbox does not confirm the requested value within 30 seconds, the protection expires and the next real readback is shown. This avoids hiding rejected commands, unsupported values or wallbox-side rounding permanently.
 - The integration allows `0` as a charging-current target on both `P30` and `P40`, so charging can be suspended directly via `Charging current limit`.
 - When the wallbox is disabled, KEBA may report `0` via read register `1100` (`Max charging current`) even though writable current limits still follow the documented minimum values. The integration therefore keeps the last valid `Charging current limit` value instead of showing `0`.
-- Runtime polling is tiered: fast-changing values are read every configured `Update interval`, while slower runtime/configuration values such as total energy, maximum supported current, phase-switch state/source and failsafe settings are read on startup and then every configured `Slow runtime polling interval` (default: 300 seconds).
+- Runtime polling is tiered: fast-changing values including phase-switch state are read every configured `Update interval`, while slower runtime/configuration values such as total energy, maximum supported current, phase-switch source and failsafe settings are read on startup and then every configured `Slow runtime polling interval` (default: 300 seconds).
 - For `P40` firmware versions below `1.2.1`, KEBA documents a bug where registers `1036` (`Total energy`) and `1502` (`Charged energy`) report `Wh` instead of `0.1 Wh`; the integration compensates for that automatically.
 - Runtime values are treated as optional. If the wallbox or a Modbus proxy does not expose individual registers, the related entities may stay unavailable instead of failing the whole update.
 - The display `notify` entity and its device-specific `display_message` action are only usable when display support is detected.
@@ -291,7 +288,7 @@ The following points are **community findings** and not part of the official KEB
 
 ### P40 Feedback And Diagnostics
 
-`P40` support is implemented but still marked beta. If behavior differs from the expected register data, open an issue and include:
+If `P40` behavior differs from the expected register data, open an issue and include:
 
 - Wallbox model and firmware version
 - Home Assistant version

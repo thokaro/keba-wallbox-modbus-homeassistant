@@ -19,6 +19,7 @@ from custom_components.keba_wallbox_modbus.registers import (
     KEY_MAX_CHARGING_CURRENT,
     KEY_MAX_SUPPORTED_CURRENT,
     KEY_PHASE_SWITCH_SOURCE,
+    KEY_PHASE_SWITCH_STATE,
     KEY_POWER_FACTOR,
     KEY_TOTAL_ENERGY,
     KEY_VOLTAGE_L1,
@@ -317,6 +318,7 @@ def test_runtime_poll_includes_slow_registers_initially(monkeypatch) -> None:
     assert KEY_TOTAL_ENERGY in registers
     assert KEY_MAX_SUPPORTED_CURRENT in registers
     assert KEY_PHASE_SWITCH_SOURCE in registers
+    assert KEY_PHASE_SWITCH_STATE in registers
 
 
 def test_runtime_poll_skips_slow_registers_until_interval(monkeypatch) -> None:
@@ -333,6 +335,7 @@ def test_runtime_poll_skips_slow_registers_until_interval(monkeypatch) -> None:
     assert not slow_polled
     assert KEY_ACTIVE_POWER in registers
     assert KEY_MAX_CHARGING_CURRENT in registers
+    assert KEY_PHASE_SWITCH_STATE in registers
     assert KEY_TOTAL_ENERGY not in registers
     assert KEY_MAX_SUPPORTED_CURRENT not in registers
     assert KEY_PHASE_SWITCH_SOURCE not in registers
