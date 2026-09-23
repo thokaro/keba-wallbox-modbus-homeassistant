@@ -1,4 +1,6 @@
 homeassistant>=2026.9.0
+# Required when importing Home Assistant 2026.9's Modbus component in tests.
+pymodbus==3.13.1
 modbus-connection[tmodbus]>=4.10.0,<5
 pytest
 pytest-asyncio
