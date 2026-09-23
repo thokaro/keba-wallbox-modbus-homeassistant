@@ -13,7 +13,7 @@ This custom integration connects **KEBA KeContact P30 and P40** wallboxes to **H
 
 ## ✨ Features
 
-- 🔎 Automatic `P30` / `P40` detection via Modbus register `1016`
+- 🔎 Automatic `P30` / `P40` detection via Modbus register `1016`, with manual model selection when needed
 - 🧠 Model-specific register handling for both wallbox families
 - 📊 Sensors for state, currents, voltages, power, energy and diagnostics
 - 🎛️ Writable entities for charging current, charging power, selected configuration registers and wallbox actions
@@ -101,13 +101,14 @@ After restarting Home Assistant:
 - `Display UDP host`: optional separate IP address or DNS name for UDP display commands and display detection; mainly relevant for `P30` wallboxes with display or when Modbus is routed differently
 - `Modbus unit ID`: default `255`; direct KEBA access usually uses `255`, but a Modbus proxy may require a different value
 - `Port`: default `502`
+- `Wallbox model`: `Automatic` (default), `P30` or `P40`. Select your model manually if automatic detection fails, for example when a P40 reports `0` in product register `1016`.
 - `Timeout`: Modbus TCP timeout in seconds
 - `Update interval`: polling interval in seconds, default `15`, minimum `10`
 - `Default display minimum duration`: default `2` seconds, minimum `0`, maximum `10`
 - `Default display maximum duration`: default `10` seconds, minimum `0`, maximum `10`
 
 The integration validates the wallbox during setup by reading the serial number and product register.
-The display duration defaults can be changed later from the integration options.
+The model selection and display duration defaults can be changed later from the integration options. Changing the model reloads the integration and applies the selected register profile, firmware decoding and model-specific functions. Product-dependent equipment details remain unknown if the product register is missing or does not match the selected model. Select `Automatic` to restore product-register detection.
 
 KEBA wallboxes allow only one active Modbus TCP client connection. If the wallbox should be controlled by multiple systems, for example Home Assistant and another energy manager, place a Modbus TCP proxy in front of the wallbox and connect all clients to that proxy. The built-in Modbus proxy in `evcc` can be used for this setup.
 
@@ -228,7 +229,7 @@ The following settings must be enabled with the KEBA eMobility App:
 
 - Some KEBA registers depend on wallbox model, firmware and licensed feature set.
 - KEBA wallboxes allow only one active Modbus TCP client. Use a Modbus TCP proxy, for example the built-in proxy in `evcc`, when multiple systems should access or control the wallbox.
-- The integration selects the correct register profile automatically for `P30` and `P40`.
+- The integration selects the register profile automatically for `P30` and `P40`, or uses the model selected manually in the integration options.
 - Decoded product details from register `1016` (`Product type and features`) are exposed as attributes on the diagnostic sensor `Serial number`.
 - `Phase switch source` uses model-specific option sets. `UDP` is only offered on `P30`.
 - `Persist failsafe settings` exists only on `P30`. `Activate fast charging` exists only on `P40`.

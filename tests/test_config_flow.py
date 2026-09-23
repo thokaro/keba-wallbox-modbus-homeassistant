@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -34,6 +36,7 @@ CONNECTION_INPUT = {
     CONF_TIMEOUT: 5,
 }
 OPTION_INPUT = {
+    "model": "auto",
     CONF_SCAN_INTERVAL: 30,
     CONF_SLOW_RUNTIME_POLL_INTERVAL: 300,
     CONF_DISPLAY_MIN_TIME: 2,
@@ -92,8 +95,9 @@ async def test_user_flow_stores_connection_data_and_options(
     assert result["options"] == OPTION_INPUT
 
 
+@pytest.mark.parametrize("model", ["auto", "p30", "p40"])
 async def test_options_flow_updates_only_runtime_options(
-    hass: HomeAssistant,
+    hass: HomeAssistant, model: str,
 ) -> None:
     """The options flow no longer edits connection data."""
     entry = MockConfigEntry(
@@ -109,6 +113,7 @@ async def test_options_flow_updates_only_runtime_options(
     assert result["type"] == FlowResultType.FORM
 
     options = {
+        "model": model,
         CONF_SCAN_INTERVAL: 45,
         CONF_SLOW_RUNTIME_POLL_INTERVAL: 60,
         CONF_DISPLAY_MIN_TIME: 1,
@@ -197,3 +202,20 @@ async def test_reconfigure_flow_rejects_different_device(
 
     assert result["type"] == FlowResultType.ABORT
     assert entry.data[CONF_HOST] == CONNECTION_INPUT[CONF_HOST]
+
+
+async def test_user_flow_manual_p40_with_empty_product(hass: HomeAssistant) -> None:
+    """A manual model controls setup identity even with an empty product register."""
+    with patch(
+        "custom_components.keba_wallbox_modbus.config_flow.async_probe_device",
+        return_value={**PROBE_RESULT, KEY_PRODUCT: 0},
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_USER},
+            data={**USER_INPUT, "model": "p40"},
+        )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == f"KeContact P40 {SERIAL}"
+    assert result["options"]["model"] == "p40"
+    assert result["result"].unique_id == SERIAL

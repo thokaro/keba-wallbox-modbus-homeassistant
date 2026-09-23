@@ -58,6 +58,7 @@ def test_split_config_preserves_legacy_effective_values() -> None:
         CONF_TIMEOUT: 5,
     }
     assert options == {
+        "model": "auto",
         CONF_SCAN_INTERVAL: 60,
         CONF_SLOW_RUNTIME_POLL_INTERVAL: SLOW_RUNTIME_POLL_INTERVAL,
         CONF_DISPLAY_MIN_TIME: 1,

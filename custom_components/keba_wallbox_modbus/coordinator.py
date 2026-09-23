@@ -20,6 +20,7 @@ from .config_data import effective_config
 from .const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
+    CONF_MODEL,
     CONF_SCAN_INTERVAL,
     CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
@@ -29,6 +30,7 @@ from .const import (
     DEFAULT_DISPLAY_MIN_TIME,
     DEFAULT_UNIT_ID,
     DOMAIN,
+    MODEL_AUTO,
     SLOW_RUNTIME_POLL_INTERVAL,
     WRITE_ASSUMPTION_TTL,
     WRITE_READBACK_RETRY_DELAY,
@@ -37,7 +39,7 @@ from .decoding import format_firmware_version, format_serial_number
 from .display import KebaDisplayClient
 from .modbus import KebaModbusError, KebaModbusHub
 from .power_control import charging_power_current_raw, regulated_power_current_raw
-from .profiles import KebaProfile, detect_wallbox_model, get_wallbox_profile
+from .profiles import KebaProfile, get_wallbox_profile, resolve_wallbox_model
 from .registers import (
     DISCOVERY_REGISTER_MAP,
     KEY_FIRMWARE_VERSION,
@@ -79,7 +81,7 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(seconds=self._config[CONF_SCAN_INTERVAL]),
         )
         self._display_supported: Optional[bool] = None
-        self._profile = get_wallbox_profile(None)
+        self._profile = get_wallbox_profile(self._config[CONF_MODEL])
         self._charging_power_target: Optional[float] = None
         self._charging_current_regulation_enabled = False
         self._charging_current_regulation_holdoff_cycles = 0
@@ -96,10 +98,10 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def model_key(self) -> Optional[str]:
-        """Return the detected wallbox model key."""
+        """Return the selected or automatically detected wallbox model key."""
         if self.data is None:
             return self._profile.model_key
-        return detect_wallbox_model(self.data.get(KEY_PRODUCT))
+        return self._resolve_model(self.data)
 
     @property
     def model(self) -> str:
@@ -120,9 +122,16 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             profile=self._profile,
         )
 
+    def _resolve_model(self, data: dict[str, Any]) -> Optional[str]:
+        """Resolve the selected model or automatically detect it."""
+        return resolve_wallbox_model(
+            data.get(KEY_PRODUCT),
+            getattr(self, "_config", {}).get(CONF_MODEL, MODEL_AUTO),
+        )
+
     def _update_profile(self, data: dict[str, Any]) -> None:
-        """Refresh the active profile from the current product register."""
-        self._profile = get_wallbox_profile(detect_wallbox_model(data.get(KEY_PRODUCT)))
+        """Refresh the active profile using the selection and product register."""
+        self._profile = get_wallbox_profile(self._resolve_model(data))
 
     def _runtime_registers_for_poll(
         self,
@@ -420,7 +429,7 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         raw = charging_power_current_raw(
             source,
-            detect_wallbox_model(source.get(KEY_PRODUCT)) if source is not None else None,
+            self._resolve_model(source or {}),
             self._profile,
             target_kw,
         )
@@ -477,7 +486,7 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         raw = regulated_power_current_raw(
             source,
-            detect_wallbox_model(source.get(KEY_PRODUCT)),
+            self._resolve_model(source),
             self._profile,
             target,
         )

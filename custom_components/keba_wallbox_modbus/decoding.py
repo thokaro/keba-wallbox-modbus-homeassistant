@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Mapping, Optional
 
 from .const import MODEL_KEY_P30, MODEL_KEY_P40
-from .profiles import model_name_for_key
+from .profiles import detect_wallbox_model, model_name_for_key
 
 P30_PRODUCT_CONNECTOR_MAP = {
     "0": "socket",
@@ -109,7 +109,7 @@ def describe_product(raw: Optional[int], model_key: Optional[str]) -> dict[str, 
         "detected_model": model_name_for_key(model_key),
     }
 
-    if model_key in MODEL_PRODUCT_FIELDS:
+    if model_key in MODEL_PRODUCT_FIELDS and detect_wallbox_model(raw) == model_key:
         width, fields = MODEL_PRODUCT_FIELDS[model_key]
         attributes.update(_decode_product_fields(str(raw).zfill(width), fields))
 

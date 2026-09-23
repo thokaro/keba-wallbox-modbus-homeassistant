@@ -55,6 +55,7 @@ async def test_migrate_entry_splits_legacy_data_and_options(
         CONF_TIMEOUT: 5,
     }
     assert entry.options == {
+        "model": "auto",
         CONF_SCAN_INTERVAL: 60,
         CONF_SLOW_RUNTIME_POLL_INTERVAL: SLOW_RUNTIME_POLL_INTERVAL,
         CONF_DISPLAY_MIN_TIME: 2,

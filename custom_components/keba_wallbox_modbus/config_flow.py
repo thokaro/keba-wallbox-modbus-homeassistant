@@ -15,6 +15,7 @@ from .config_data import connection_defaults, option_defaults
 from .const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
+    CONF_MODEL,
     CONF_SCAN_INTERVAL,
     CONF_SLOW_RUNTIME_POLL_INTERVAL,
     CONF_TIMEOUT,
@@ -28,11 +29,14 @@ from .const import (
     DEFAULT_UNIT_ID,
     DOMAIN,
     MIN_SCAN_INTERVAL,
+    MODEL_AUTO,
+    MODEL_KEY_P30,
+    MODEL_KEY_P40,
     SLOW_RUNTIME_POLL_INTERVAL,
     UDP_DISPLAY_MAX_DURATION,
 )
 from .decoding import format_serial_number
-from .profiles import detect_wallbox_model, model_name_for_key
+from .profiles import model_name_for_key, resolve_wallbox_model
 from .registers import (
     KEY_PRODUCT,
     KEY_SERIAL_NUMBER,
@@ -57,6 +61,7 @@ def _normalize_connection_input(user_input: dict[str, Any]) -> dict[str, Any]:
 def _normalize_option_input(user_input: dict[str, Any]) -> dict[str, Any]:
     """Normalize option selector output before storing it."""
     return {
+        CONF_MODEL: user_input.get(CONF_MODEL, MODEL_AUTO),
         CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
         CONF_SLOW_RUNTIME_POLL_INTERVAL: int(
             user_input[CONF_SLOW_RUNTIME_POLL_INTERVAL]
@@ -120,6 +125,13 @@ def _option_schema(defaults: Optional[dict[str, Any]] = None) -> dict[Any, Any]:
     """Build the options part of a config schema."""
     values = option_defaults(defaults)
     return {
+        vol.Required(CONF_MODEL, default=values[CONF_MODEL]): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[MODEL_AUTO, MODEL_KEY_P30, MODEL_KEY_P40],
+                translation_key="model",
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        ),
         vol.Required(
             CONF_SCAN_INTERVAL,
             default=values.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -214,10 +226,12 @@ async def _async_probe_user_input(
     return probe, {}
 
 
-def _probe_identity(probe: dict[str, Optional[int]]) -> tuple[Optional[str], str]:
+def _probe_identity(
+    probe: dict[str, Optional[int]], model: str = MODEL_AUTO
+) -> tuple[Optional[str], str]:
     """Extract the serial number and model name from a probe result."""
     serial = format_serial_number(probe.get(KEY_SERIAL_NUMBER))
-    model_name = model_name_for_key(detect_wallbox_model(probe.get(KEY_PRODUCT)))
+    model_name = model_name_for_key(resolve_wallbox_model(probe.get(KEY_PRODUCT), model))
     return serial, model_name
 
 
@@ -246,7 +260,7 @@ class KebaConfigFlow(ConfigFlow, domain=DOMAIN):
                     context="discovery",
                 )
                 if probe is not None:
-                    serial, model_name = _probe_identity(probe)
+                    serial, model_name = _probe_identity(probe, option_input[CONF_MODEL])
                     if serial is None:
                         errors["base"] = "cannot_connect"
                     else:

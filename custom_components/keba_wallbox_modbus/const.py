@@ -7,6 +7,8 @@ from homeassistant.const import Platform
 DOMAIN = "keba_wallbox_modbus"
 MANUFACTURER = "KEBA"
 MODEL = "KeContact Wallbox"
+MODEL_AUTO = "auto"
+CONF_MODEL = "model"
 MODEL_KEY_P30 = "p30"
 MODEL_KEY_P40 = "p40"
 MODEL_NAME_P30 = "KeContact P30"
@@ -67,6 +69,8 @@ __all__ = [
     "MIN_SCAN_INTERVAL",
     "MIN_WRITE_INTERVAL",
     "MODEL",
+    "MODEL_AUTO",
+    "CONF_MODEL",
     "MODEL_KEY_P30",
     "MODEL_KEY_P40",
     "MODEL_NAME_P30",

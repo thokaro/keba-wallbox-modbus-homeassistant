@@ -8,6 +8,7 @@ from typing import Mapping, Optional
 
 from .const import (
     MODEL,
+    MODEL_AUTO,
     MODEL_KEY_P30,
     MODEL_KEY_P40,
     MODEL_NAME_P30,
@@ -114,6 +115,15 @@ def detect_wallbox_model(raw_product: Optional[int]) -> Optional[str]:
     return None
 
 
+def resolve_wallbox_model(
+    raw_product: Optional[int], model: str = MODEL_AUTO
+) -> Optional[str]:
+    """Prefer an explicitly selected model over product detection."""
+    if model in PROFILE_BY_MODEL:
+        return model
+    return detect_wallbox_model(raw_product)
+
+
 def get_wallbox_profile(model_key: Optional[str]) -> KebaProfile:
     """Return the model-specific profile."""
     return PROFILE_BY_MODEL.get(model_key, P30_PROFILE)
@@ -131,6 +141,7 @@ __all__ = [
     "P40_PROFILE",
     "PROFILE_BY_MODEL",
     "detect_wallbox_model",
+    "resolve_wallbox_model",
     "get_wallbox_profile",
     "model_name_for_key",
 ]

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.9.1 - 2026-09-23
+
+- Added an `Automatic` / `P30` / `P40` model selection during setup and in integration options. Existing installations continue to use automatic detection by default.
+- Added a workaround for P40 wallboxes reporting `0` in product register `1016` (issue #5): selecting `P40` applies the P40 register profile, firmware decoding, model-specific functions and charging-power calculations.
+- Kept product-dependent equipment details unknown when the product register is missing or does not match the selected model.
+- Added English and German model-selection labels and updated configuration documentation.
+- Added regression coverage for the reported P40 firmware value, profile selection, capabilities, polling and switching back to automatic detection.
+
+For affected P40 installations, select **P40** in the integration options after updating and restarting Home Assistant. Saving the options reloads the integration. This is an integration-side workaround; the empty product register still requires clarification from KEBA.
+
 ## 2026.9.0 - 2026-09-04
 
 - Released the integration as stable and removed the beta notices from the documentation.
