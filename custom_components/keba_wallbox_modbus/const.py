@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 
+from .keba_modbus import (
+    MIN_READ_INTERVAL as MIN_READ_INTERVAL,
+    MIN_WRITE_INTERVAL as MIN_WRITE_INTERVAL,
+)
+
 DOMAIN = "keba_wallbox_modbus"
 MANUFACTURER = "KEBA"
 MODEL = "KeContact Wallbox"
@@ -32,9 +37,7 @@ CONF_SLOW_RUNTIME_POLL_INTERVAL = "slow_runtime_poll_interval"
 CONF_TIMEOUT = "timeout"
 CONF_UDP_HOST = "udp_host"
 CONF_UNIT_ID = "unit_id"
-MIN_READ_INTERVAL = 0.6
 MIN_SCAN_INTERVAL = 10
-MIN_WRITE_INTERVAL = 5.0
 WRITE_ASSUMPTION_TTL = 30.0
 WRITE_READBACK_DELAY = MIN_READ_INTERVAL
 WRITE_READBACK_RETRY_DELAY = MIN_WRITE_INTERVAL

@@ -10,6 +10,9 @@ import logging
 from time import monotonic
 from typing import Any, Optional
 
+from modbus_connection import ModbusTcpParams
+
+from homeassistant.components.modbus import async_get_unit
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -67,12 +70,15 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             host=self._display_udp_host,
             timeout=self._config[CONF_TIMEOUT],
         )
-        self.hub = KebaModbusHub(
-            host=self._config[CONF_HOST],
-            port=self._config[CONF_PORT],
-            timeout=self._config[CONF_TIMEOUT],
-            unit_id=int(self._config.get(CONF_UNIT_ID, DEFAULT_UNIT_ID)),
+        unit = async_get_unit(
+            hass,
+            entry,
+            ModbusTcpParams(
+                host=self._config[CONF_HOST], port=self._config[CONF_PORT]
+            ),
+            int(self._config.get(CONF_UNIT_ID, DEFAULT_UNIT_ID)),
         )
+        self.hub = KebaModbusHub(unit, timeout=self._config[CONF_TIMEOUT])
 
         super().__init__(
             hass,
@@ -262,6 +268,7 @@ class KebaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         """Close resources held by the coordinator."""
+        await super().async_shutdown()
         await self.hub.async_close()
 
     async def async_write_register(self, address: int, value: int) -> None:

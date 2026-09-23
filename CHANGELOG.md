@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026.9.2 - 2026-09-23
+
+### ✨ Improvements
+
+- Moved Modbus communication to Home Assistant's shared connection manager. Running entries and temporary setup/reconfiguration probes can share a connection, which is released when its last consumer unloads.
+- Replaced direct pymodbus access with a bundled, backend-neutral KEBA device module. KEBA's 0.6-second request spacing, 5-second write interval and coalescing of pending writes are retained.
+- Grouped optional P30 UDP display settings in an initially collapsed **P30: UDP display** section during setup, reconfiguration and option changes.
+
+### 🐛 Fixes
+
+- Cancel queued and in-flight writes cleanly during shutdown without closing another consumer's connection.
+- Prefill the display duration fields inside the collapsed section: **2 seconds minimum** and **10 seconds maximum** by default. Existing configured values, including zero, are preserved.
+
+### 📖 Documentation
+
+- Documented shared connection ownership, the bundled device module, version-specific timeout behavior and the P30 UDP display section.
+- Added regression coverage for connection sharing, probe failures, shutdown, timeout handling and serialized form defaults.
+
+### ⬆️ Upgrade notes
+
+- **Home Assistant 2026.9.0 or newer is required.** Update Home Assistant before installing this release if you are running an older version.
+- No configuration migration or Modbus YAML hub is required. Existing entries, entity IDs, P30/P40 model settings, polling intervals and UDP display settings are retained. Restart Home Assistant after updating.
+- On Home Assistant 2026.9's bundled Modbus library, the configured timeout bounds the entire operation, including waiting for the shared connection; the backend's 10-second response timeout also applies. With the newer shared timeout API, the largest timeout requirement among consumers applies.
+- The write queue coordinates this integration's commands. Other integrations or external controllers writing to the same wallbox must also respect KEBA's write interval.
+
+### ✅ Validation
+
+- 90 tests passed locally, including shared-connection lifecycle and P30 display configuration regression tests.
+- Ruff passed.
+- No live wallbox test was performed.
+
 ## 2026.9.1 - 2026-09-23
 
 - Added an `Automatic` / `P30` / `P40` model selection during setup and in integration options. Existing installations continue to use automatic detection by default.

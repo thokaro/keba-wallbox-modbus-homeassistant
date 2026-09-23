@@ -39,6 +39,11 @@ This custom integration connects **KEBA KeContact P30 and P40** wallboxes to **H
 
 ## 📦 Installation
 
+Requires **Home Assistant 2026.9.0 or newer**. This integration uses Home
+Assistant's shared Modbus connection manager; no Modbus YAML hub is required.
+Existing KEBA entries, options and entity IDs are retained when updating.
+
+
 ### Option 1: One-click repository add via My Home Assistant (HACS)
 
 1. Make sure **HACS** is installed in your Home Assistant instance.
@@ -102,10 +107,12 @@ After restarting Home Assistant:
 - `Modbus unit ID`: default `255`; direct KEBA access usually uses `255`, but a Modbus proxy may require a different value
 - `Port`: default `502`
 - `Wallbox model`: `Automatic` (default), `P30` or `P40`. Select your model manually if automatic detection fails, for example when a P40 reports `0` in product register `1016`.
-- `Timeout`: Modbus TCP timeout in seconds
+- `Timeout`: Modbus timeout in seconds. See the version-specific shared-connection behavior below.
 - `Update interval`: polling interval in seconds, default `15`, minimum `10`
 - `Default display minimum duration`: default `2` seconds, minimum `0`, maximum `10`
 - `Default display maximum duration`: default `10` seconds, minimum `0`, maximum `10`
+
+Optional P30 display settings are grouped in the collapsed **P30: UDP display** section. Expand it to edit the UDP host during setup/reconfiguration or the display durations during setup/integration options.
 
 The integration validates the wallbox during setup by reading the serial number and product register.
 The model selection and display duration defaults can be changed later from the integration options. Changing the model reloads the integration and applies the selected register profile, firmware decoding and model-specific functions. Product-dependent equipment details remain unknown if the product register is missing or does not match the selected model. Select `Automatic` to restore product-register detection.
@@ -311,3 +318,44 @@ If `P40` behavior differs from the expected register data, open an issue and inc
 
 - [GitHub Issues](https://github.com/thokaro/keba-wallbox-modbus-homeassistant/issues)
 - [Repository](https://github.com/thokaro/keba-wallbox-modbus-homeassistant)
+
+## Modbus architecture and development
+
+The integration obtains a `ModbusUnit` from Home Assistant's `modbus` integration
+with `async_get_unit`. Discovery and reconfiguration use
+`async_get_temporary_unit`, so probing cannot close a connection still used by
+another entry. Home Assistant owns connection setup, reconnection and final
+cleanup; this integration does not create a backend client or pin `pymodbus`.
+
+The bundled `custom_components/keba_wallbox_modbus/keba_modbus` device module has
+no Home Assistant imports and consumes only the backend-neutral `ModbusUnit`
+protocol. It keeps KEBA's individual two-word FC03 reads and single-word FC06
+writes. Per-unit request spacing (0.6 seconds) is enforced by the shared
+connection, including across polling cycles. The device module additionally
+spaces its successful writes by at least 5 seconds and coalesces pending writes
+to the same address. Other integrations writing to the same wallbox must also
+respect KEBA's write interval; the local write queue cannot coordinate their
+commands.
+
+Home Assistant 2026.9 bundles `modbus-connection` 4.10. With that version,
+`Timeout` bounds the entire read/write operation, including time waiting on the
+shared connection; the backend's own 10-second response timeout still applies.
+With newer library versions exposing `require_timeout`, the setting is instead
+registered as a minimum response timeout on the shared connection, where the
+largest requirement among consumers applies. The integration uses the library
+version supplied by Home Assistant.
+
+The existing model-specific register maps, optional-register handling, polling
+cadences, readback checks and UDP display support remain in place. The optional
+component modelling framework is not used to combine KEBA's individual reads.
+
+To run the checks with Python 3.14:
+
+```sh
+python -m pip install -r requirements-test.txt
+python -m ruff check .
+python -m pytest
+```
+
+References: [Home Assistant Modbus integration API](https://developers.home-assistant.io/docs/modbus/introduction/)
+and [modbus-connection](https://home-assistant-libs.github.io/modbus-connection/).

@@ -9,6 +9,9 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .config_data import connection_defaults, option_defaults
@@ -44,6 +47,32 @@ from .registers import (
 from .modbus import KebaModbusError, async_probe_device
 
 LOGGER = logging.getLogger(__name__)
+
+SECTION_P30_UDP = "p30_udp"
+UDP_FIELDS = frozenset({CONF_UDP_HOST, CONF_DISPLAY_MIN_TIME, CONF_DISPLAY_MAX_TIME})
+
+
+def _flatten_udp_input(values: dict[str, Any]) -> dict[str, Any]:
+    """Keep section nesting out of the stored connection data and options."""
+    flat = dict(values)
+    flat.update(flat.pop(SECTION_P30_UDP, {}))
+    return flat
+
+
+def _with_udp_section(fields: dict[Any, Any]) -> vol.Schema:
+    """Group P30 display settings in an initially collapsed section."""
+    main_fields = {}
+    udp_fields = {}
+    for key, value in fields.items():
+        target = udp_fields if key.schema in UDP_FIELDS else main_fields
+        target[key] = value
+    udp_schema = vol.Schema(udp_fields)
+    # The frontend uses a section default instead of its children's defaults.
+    # Supply all values so the collapsed section is prefilled when opened.
+    main_fields[vol.Optional(SECTION_P30_UDP, default=udp_schema({}))] = section(
+        udp_schema, {"collapsed": True}
+    )
+    return vol.Schema(main_fields)
 
 
 def _normalize_connection_input(user_input: dict[str, Any]) -> dict[str, Any]:
@@ -184,20 +213,21 @@ def _option_schema(defaults: Optional[dict[str, Any]] = None) -> dict[Any, Any]:
 
 def _build_setup_schema(defaults: Optional[dict[str, Any]] = None) -> vol.Schema:
     """Build the initial config schema."""
-    return vol.Schema({**_connection_schema(defaults), **_option_schema(defaults)})
+    return _with_udp_section({**_connection_schema(defaults), **_option_schema(defaults)})
 
 
 def _build_reconfigure_schema(defaults: Optional[dict[str, Any]] = None) -> vol.Schema:
     """Build the reconfigure schema for setup data."""
-    return vol.Schema(_connection_schema(defaults))
+    return _with_udp_section(_connection_schema(defaults))
 
 
 def _build_options_schema(defaults: Optional[dict[str, Any]] = None) -> vol.Schema:
     """Build the options schema."""
-    return vol.Schema(_option_schema(defaults))
+    return _with_udp_section(_option_schema(defaults))
 
 
 async def _async_probe_user_input(
+    hass: HomeAssistant,
     user_input: dict[str, Any],
     *,
     context: str,
@@ -205,12 +235,13 @@ async def _async_probe_user_input(
     """Probe a wallbox using config flow input."""
     try:
         probe = await async_probe_device(
+            hass,
             str(user_input[CONF_HOST]),
             int(user_input[CONF_PORT]),
             int(user_input[CONF_TIMEOUT]),
             int(user_input[CONF_UNIT_ID]),
         )
-    except KebaModbusError as err:
+    except (KebaModbusError, HomeAssistantError) as err:
         LOGGER.warning(
             "KEBA wallbox %s failed for %s:%s: %s",
             context,
@@ -251,11 +282,13 @@ class KebaConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            user_input = _flatten_udp_input(user_input)
             connection_input = _normalize_connection_input(user_input)
             option_input = _normalize_option_input(user_input)
             errors = _validate_display_defaults(option_input)
             if not errors:
                 probe, errors = await _async_probe_user_input(
+                    self.hass,
                     connection_input,
                     context="discovery",
                 )
@@ -287,8 +320,10 @@ class KebaConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            user_input = _flatten_udp_input(user_input)
             connection_input = _normalize_connection_input(user_input)
             probe, errors = await _async_probe_user_input(
+                self.hass,
                 connection_input,
                 context="reconfiguration",
             )
@@ -322,6 +357,7 @@ class KebaOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            user_input = _flatten_udp_input(user_input)
             option_input = _normalize_option_input(user_input)
             errors = _validate_display_defaults(option_input)
             if not errors:

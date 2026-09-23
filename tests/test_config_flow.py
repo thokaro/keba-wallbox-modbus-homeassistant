@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.keba_wallbox_modbus.config_flow import _option_schema
+from custom_components.keba_wallbox_modbus.config_flow import _option_schema, SECTION_P30_UDP, UDP_FIELDS
 from custom_components.keba_wallbox_modbus.const import (
     CONF_DISPLAY_MAX_TIME,
     CONF_DISPLAY_MIN_TIME,
@@ -49,6 +49,14 @@ PROBE_RESULT = {
 }
 
 
+def with_udp_section(values):
+    """Submit values using the same nesting as the configuration form."""
+    return {
+        **{key: value for key, value in values.items() if key not in UDP_FIELDS},
+        SECTION_P30_UDP: {key: value for key, value in values.items() if key in UDP_FIELDS},
+    }
+
+
 def test_options_schema_uses_minimum_scan_interval() -> None:
     """The options flow enforces the documented minimum scan interval."""
     selector = next(
@@ -83,7 +91,7 @@ async def test_user_flow_stores_connection_data_and_options(
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": config_entries.SOURCE_USER},
-            data=USER_INPUT,
+            data=with_udp_section(USER_INPUT),
         )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -121,7 +129,7 @@ async def test_options_flow_updates_only_runtime_options(
     }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input=options,
+        user_input=with_udp_section(options),
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -161,7 +169,7 @@ async def test_reconfigure_flow_updates_connection_data(
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input=updated,
+            user_input=with_udp_section(updated),
         )
 
     assert result["type"] == FlowResultType.ABORT
@@ -197,7 +205,7 @@ async def test_reconfigure_flow_rejects_different_device(
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input=CONNECTION_INPUT,
+            user_input=with_udp_section(CONNECTION_INPUT),
         )
 
     assert result["type"] == FlowResultType.ABORT
@@ -213,9 +221,61 @@ async def test_user_flow_manual_p40_with_empty_product(hass: HomeAssistant) -> N
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": config_entries.SOURCE_USER},
-            data={**USER_INPUT, "model": "p40"},
+            data=with_udp_section({**USER_INPUT, "model": "p40"}),
         )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == f"KeContact P40 {SERIAL}"
     assert result["options"]["model"] == "p40"
     assert result["result"].unique_id == SERIAL
+
+
+async def test_collapsed_options_keep_stored_display_durations(hass):
+    """Saving without opening the section retains existing display settings."""
+    options = {**OPTION_INPUT, CONF_DISPLAY_MIN_TIME: 3, CONF_DISPLAY_MAX_TIME: 9}
+    entry = MockConfigEntry(domain=DOMAIN, data=CONNECTION_INPUT, options=options)
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    udp_section = result["data_schema"].schema[SECTION_P30_UDP]
+    assert udp_section.options["collapsed"] is True
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={key: value for key, value in options.items() if key not in UDP_FIELDS},
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"] == options
+
+
+async def test_invalid_display_durations_preserve_section_values(hass):
+    """Validation still rejects invalid nested durations and retains the input."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER},
+    )
+    assert result["data_schema"].schema[SECTION_P30_UDP].options["collapsed"] is True
+    invalid = with_udp_section({**USER_INPUT, CONF_DISPLAY_MIN_TIME: 9, CONF_DISPLAY_MAX_TIME: 2})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input=invalid)
+    assert result["errors"] == {"base": "invalid_display_duration"}
+    assert result["data_schema"](invalid)[SECTION_P30_UDP] == invalid[SECTION_P30_UDP]
+    defaults = result["data_schema"].schema[SECTION_P30_UDP].schema({})
+    assert defaults[CONF_DISPLAY_MIN_TIME] == 9
+    assert defaults[CONF_DISPLAY_MAX_TIME] == 2
+
+
+@pytest.mark.parametrize("stored", [{}, {CONF_DISPLAY_MIN_TIME: 0, CONF_DISPLAY_MAX_TIME: 7}])
+@pytest.mark.parametrize("form", ["setup", "options"])
+def test_udp_section_serializes_complete_frontend_defaults(stored, form):
+    """The section default must not mask its fields' values in the frontend."""
+    from probatio import to_field_list
+    from homeassistant.helpers.config_validation import custom_serializer
+
+    from custom_components.keba_wallbox_modbus.config_flow import (
+        _build_options_schema,
+        _build_setup_schema,
+    )
+
+    build = _build_setup_schema if form == "setup" else _build_options_schema
+    fields = to_field_list(build(stored), custom_serializer=custom_serializer)
+    udp = next(field for field in fields if field["name"] == SECTION_P30_UDP)
+    assert udp["type"] == "expandable"
+    assert udp["expanded"] is False
+    assert udp["default"][CONF_DISPLAY_MIN_TIME] == stored.get(CONF_DISPLAY_MIN_TIME, 2)
+    assert udp["default"][CONF_DISPLAY_MAX_TIME] == stored.get(CONF_DISPLAY_MAX_TIME, 10)
