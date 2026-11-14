@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.0 - 2026-11-14
+
+### 🐛 Fixes
+
+- Assume P40 in automatic mode when product register `1016` returns `0`, fixing the firmware display and model-specific profile for affected P40 variants (#5). Manual model selection still takes priority; product-dependent equipment details remain unknown.
+
+### 📖 Documentation
+
+- Clarify that accepting a `0` A target does not guarantee a charging pause. For P30, use `Charger enable` to suspend charging while keeping the wallbox powered on and reachable (#8).
+- Explain that a value reverting after approximately 30 seconds may reflect the integration's temporary write assumption expiring.
+
+### ⬆️ Upgrade notes
+
+- Restart Home Assistant after updating. No configuration migration is required.
+- Existing manual model selections remain in effect. Entries using `Automatic` now apply the P40 profile when product register `1016` returns `0`.
+
 ## 2026.9.2 - 2026-09-23
 
 ### ✨ Improvements

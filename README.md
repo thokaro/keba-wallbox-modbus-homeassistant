@@ -106,7 +106,7 @@ After restarting Home Assistant:
 - `Display UDP host`: optional separate IP address or DNS name for UDP display commands and display detection; mainly relevant for `P30` wallboxes with display or when Modbus is routed differently
 - `Modbus unit ID`: default `255`; direct KEBA access usually uses `255`, but a Modbus proxy may require a different value
 - `Port`: default `502`
-- `Wallbox model`: `Automatic` (default), `P30` or `P40`. Select your model manually if automatic detection fails, for example when a P40 reports `0` in product register `1016`.
+- `Wallbox model`: `Automatic` (default), `P30` or `P40`. In automatic mode, a product register `1016` value of `0` is treated as a `P40`, matching the behavior reported by affected P40 variants. Product-dependent equipment details remain unknown while the product code is empty. You can select the model manually to override automatic detection.
 - `Timeout`: Modbus timeout in seconds. See the version-specific shared-connection behavior below.
 - `Update interval`: polling interval in seconds, default `15`, minimum `10`
 - `Default display minimum duration`: default `2` seconds, minimum `0`, maximum `10`

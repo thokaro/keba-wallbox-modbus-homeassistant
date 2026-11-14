@@ -212,8 +212,9 @@ async def test_reconfigure_flow_rejects_different_device(
     assert entry.data[CONF_HOST] == CONNECTION_INPUT[CONF_HOST]
 
 
-async def test_user_flow_manual_p40_with_empty_product(hass: HomeAssistant) -> None:
-    """A manual model controls setup identity even with an empty product register."""
+@pytest.mark.parametrize("model", ["auto", "p40"])
+async def test_user_flow_p40_with_empty_product(hass: HomeAssistant, model: str) -> None:
+    """An empty product uses P40 identity for automatic and manual setup."""
     with patch(
         "custom_components.keba_wallbox_modbus.config_flow.async_probe_device",
         return_value={**PROBE_RESULT, KEY_PRODUCT: 0},
@@ -221,11 +222,11 @@ async def test_user_flow_manual_p40_with_empty_product(hass: HomeAssistant) -> N
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": config_entries.SOURCE_USER},
-            data=with_udp_section({**USER_INPUT, "model": "p40"}),
+            data=with_udp_section({**USER_INPUT, "model": model}),
         )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == f"KeContact P40 {SERIAL}"
-    assert result["options"]["model"] == "p40"
+    assert result["options"]["model"] == model
     assert result["result"].unique_id == SERIAL
 
 

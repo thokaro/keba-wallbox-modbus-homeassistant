@@ -118,9 +118,13 @@ def detect_wallbox_model(raw_product: Optional[int]) -> Optional[str]:
 def resolve_wallbox_model(
     raw_product: Optional[int], model: str = MODEL_AUTO
 ) -> Optional[str]:
-    """Prefer an explicitly selected model over product detection."""
+    """Prefer an explicit model, with a P40 fallback for an empty product code."""
     if model in PROFILE_BY_MODEL:
         return model
+    # Some P40 variants return zero in register 1016 (issue #5).
+    # Keep this separate from detection so no product features are inferred.
+    if raw_product == 0:
+        return MODEL_KEY_P40
     return detect_wallbox_model(raw_product)
 
 

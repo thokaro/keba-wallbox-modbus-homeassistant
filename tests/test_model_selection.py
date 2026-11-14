@@ -22,16 +22,19 @@ from custom_components.keba_wallbox_modbus.registers import (
 @pytest.mark.parametrize(
     ("product", "selection", "expected"),
     [
-        (0, "auto", None),
+        (0, "auto", "p40"),
+        (None, "auto", None),
+        (123456, "auto", None),
         (312110, "auto", "p30"),
         (4212311, "auto", "p40"),
         (0, "p40", "p40"),
+        (0, "p30", "p30"),
         (312110, "p40", "p40"),
         (4212311, "p30", "p30"),
     ],
 )
 def test_model_resolution(product, selection, expected):
-    """Manual selection takes priority; automatic detection remains unchanged."""
+    """Only a zero product code triggers the fallback; manual selection wins."""
     assert resolve_wallbox_model(product, selection) == expected
 
 
@@ -46,16 +49,20 @@ def test_override_does_not_invent_product_features(product):
     assert "connector" not in describe_product(product, "p40")
 
 
-async def test_p40_override_controls_polling_firmware_and_capabilities(hass):
-    """Issue #5 uses the complete P40 profile when selected manually."""
+@pytest.mark.parametrize("selection", ["auto", "p40"])
+@pytest.mark.parametrize("firmware, expected_version", [(10405, "1.4.5"), (10500, "1.5.0")])
+async def test_p40_empty_product_controls_polling_firmware_and_capabilities(
+    hass, selection, firmware, expected_version
+):
+    """Issue #5 uses the complete P40 profile automatically or manually."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={"host": "wallbox.local"},
-        options={CONF_MODEL: "p40"},
+        options={CONF_MODEL: selection},
         unique_id="12345678",
     )
     coordinator = KebaDataUpdateCoordinator(hass, entry)
-    values = {KEY_PRODUCT: 0, KEY_FIRMWARE_VERSION: 10500, KEY_SERIAL_NUMBER: 12345678}
+    values = {KEY_PRODUCT: 0, KEY_FIRMWARE_VERSION: firmware, KEY_SERIAL_NUMBER: 12345678}
 
     async def read(registers, **kwargs):
         return {key: values.get(key, 0) for key in registers}
@@ -64,7 +71,7 @@ async def test_p40_override_controls_polling_firmware_and_capabilities(hass):
     coordinator.data = await coordinator._async_update_data()
     assert coordinator.model_key == "p40"
     assert coordinator.model == "KeContact P40"
-    assert coordinator.firmware_version == "1.5.0"
+    assert coordinator.firmware_version == expected_version
     assert coordinator.capabilities.supports_fast_charging
     assert not coordinator.capabilities.supports_failsafe_persist
     assert not coordinator.capabilities.supports_unlock_plug
@@ -72,10 +79,10 @@ async def test_p40_override_controls_polling_firmware_and_capabilities(hass):
     assert KEY_FAST_CHARGING_STATE in coordinator.data
     assert KEY_HARDWARE_REVISION_DEVICE in coordinator.data
 
-    # Subsequent polling must not reset the override when product remains zero.
+    # Subsequent polling must retain the P40 profile when product remains zero.
     coordinator.data = await coordinator._async_update_data()
     assert coordinator.model_key == "p40"
-    assert coordinator.firmware_version == "1.5.0"
+    assert coordinator.firmware_version == expected_version
 
     # Returning to automatic restores product-based detection.
     coordinator._config[CONF_MODEL] = "auto"
